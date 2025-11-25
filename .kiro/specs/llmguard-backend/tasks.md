@@ -77,14 +77,14 @@
 
 ## Phase 3: Project & API Key Management
 
-- [ ] 12. Create project service
+- [x] 12. Create project service
   - Create services/projectService.ts with CRUD operations
   - Implement project creation with API key generation
   - Add project listing and deletion
   - Implement API key rotation and validation
   - _Requirements: 2.1, 2.2, 2.3, 2.4_
 
-- [ ] 13. Create project routes and controller
+- [x] 13. Create project routes and controller
   - Create routes/projects.ts with GET /projects, POST /projects, GET /projects/:id, DELETE /projects/:id
   - Create routes for API key management: POST /projects/:id/api-keys/create, /rotate, /delete
   - Create controllers/projectController.ts with request handlers

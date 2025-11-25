@@ -6,6 +6,7 @@ import { errorHandler } from './middleware/errorHandler.js';
 import { requestLogger } from './middleware/logging.js';
 import { rateLimit } from './middleware/rateLimit.js';
 import authRoutes from './routes/auth.js';
+import projectRoutes from './routes/projects.js';
 
 // Initialize Express app
 const app: Express = express();
@@ -49,6 +50,9 @@ app.get('/health', (_req: Request, res: Response) => {
 
 // Authentication routes
 app.use('/auth', authRoutes);
+
+// Project routes
+app.use('/projects', projectRoutes);
 
 // Placeholder for additional routes (will be implemented in subsequent tasks):
 // - Project routes
