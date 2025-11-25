@@ -99,21 +99,21 @@
 
 ## Phase 4: LLM Request Logging & Risk Scoring
 
-- [ ] 15. Implement risk scoring algorithm
+- [x] 15. Implement risk scoring algorithm
   - Create utils/riskScoring.ts with risk score calculation
   - Implement keyword detection for sensitive content
   - Add model-specific risk adjustments
   - Clamp scores to 0-100 range
   - _Requirements: 3.3_
 
-- [ ] 16. Create LLM service
-  - Create services/llmService.ts with request logging and validation
+- [x] 16. Create LLM service
+  - Create services/llmService.ts with request logging and validation   
   - Implement risk score computation
   - Add latency and token tracking
   - Implement error handling and logging
   - _Requirements: 3.1, 3.2, 3.3, 3.4_
 
-- [ ] 17. Create LLM routes and controller
+- [x] 17. Create LLM routes and controller
   - Create routes/llm.ts with POST /llm/request endpoint
   - Create controllers/llmController.ts with request handler
   - Create validators/llm.ts with Zod schemas for LLM requests

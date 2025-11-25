@@ -7,6 +7,7 @@ import { requestLogger } from './middleware/logging.js';
 import { rateLimit } from './middleware/rateLimit.js';
 import authRoutes from './routes/auth.js';
 import projectRoutes from './routes/projects.js';
+import llmRoutes from './routes/llm.js';
 
 // Initialize Express app
 const app: Express = express();
@@ -55,9 +56,10 @@ app.use('/auth', authRoutes);
 // Project routes
 app.use('/projects', projectRoutes);
 
+// LLM routes
+app.use('/llm', llmRoutes);
+
 // Placeholder for additional routes (will be implemented in subsequent tasks):
-// - Project routes
-// - LLM routes
 // - Incident routes
 // - Remediation routes
 // - Metrics routes
