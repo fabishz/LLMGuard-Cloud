@@ -33,7 +33,7 @@ export function validateBody(schema: ZodSchema) {
         });
       }
 
-      throw new ValidationError('Invalid request body', details);
+      next(new ValidationError('Invalid request body', details));
     }
   };
 }
@@ -68,7 +68,7 @@ export function validateQuery(schema: ZodSchema) {
         });
       }
 
-      throw new ValidationError('Invalid query parameters', details);
+      next(new ValidationError('Invalid query parameters', details));
     }
   };
 }
@@ -103,7 +103,7 @@ export function validateParams(schema: ZodSchema) {
         });
       }
 
-      throw new ValidationError('Invalid URL parameters', details);
+      next(new ValidationError('Invalid URL parameters', details));
     }
   };
 }

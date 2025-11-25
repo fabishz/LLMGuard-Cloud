@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { logger } from '../utils/logger.js';
 import { AppError } from '../utils/errors.js';
 
@@ -6,7 +6,7 @@ import { AppError } from '../utils/errors.js';
  * Global error handling middleware
  * Catches all errors and returns standardized error responses
  */
-export const errorHandler = (err: Error | AppError, req: Request, res: Response) => {
+export const errorHandler = (err: Error | AppError, req: Request, res: Response, _next: NextFunction) => {
   const requestId = req.requestId || 'unknown';
 
   // Handle custom AppError

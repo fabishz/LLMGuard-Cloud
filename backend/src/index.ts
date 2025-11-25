@@ -8,6 +8,7 @@ import { rateLimit } from './middleware/rateLimit.js';
 import authRoutes from './routes/auth.js';
 import projectRoutes from './routes/projects.js';
 import llmRoutes from './routes/llm.js';
+import incidentRoutes from './routes/incidents.js';
 import { initializeIncidentDetectionCron } from './cron/incidentDetection.js';
 
 // Initialize Express app
@@ -60,8 +61,10 @@ app.use('/projects', projectRoutes);
 // LLM routes
 app.use('/llm', llmRoutes);
 
+// Incident routes (nested under projects)
+app.use('/projects/:projectId/incidents', incidentRoutes);
+
 // Placeholder for additional routes (will be implemented in subsequent tasks):
-// - Incident routes
 // - Remediation routes
 // - Metrics routes
 // - Logs routes

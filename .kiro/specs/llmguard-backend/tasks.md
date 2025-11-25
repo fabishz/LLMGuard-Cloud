@@ -150,14 +150,14 @@
   - Implement error handling and fallback responses
   - _Requirements: 4.4_
 
-- [ ] 22. Create incident service with RCA generation
+- [x] 22. Create incident service with RCA generation
   - Extend services/incidentService.ts with RCA generation
   - Implement fetching last 20 related LLM requests
   - Add OpenAI integration for analysis
   - Store RCA in incident record
   - _Requirements: 4.1, 4.3, 4.4_
 
-- [ ] 23. Create incident routes and controller
+- [x] 23. Create incident routes and controller
   - Create routes/incidents.ts with GET /incidents, GET /incidents/:id, POST /incidents/:id/resolve
   - Create controllers/incidentController.ts with request handlers
   - Create validators/incident.ts with Zod schemas
