@@ -188,7 +188,7 @@ export async function logLLMRequest(projectId: string, input: LogLLMRequestInput
       'Failed to log LLM request'
     );
 
-    throw new Error('Failed to log LLM request');
+    throw error;
   }
 }
 
@@ -229,7 +229,7 @@ export async function getLLMRequest(projectId: string, requestId: string): Promi
     }
 
     logger.error({ error, projectId, requestId }, 'Failed to get LLM request');
-    throw new Error('Failed to get LLM request');
+    throw error;
   }
 }
 
