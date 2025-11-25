@@ -136,7 +136,7 @@
   - Add cost spike detection (>50% above daily average)
   - _Requirements: 4.1_
 
-- [ ] 20. Implement scheduled incident detection (cron job)
+- [x] 20. Implement scheduled incident detection (cron job)
   - Create cron/incidentDetection.ts with hourly job
   - Implement statistical anomaly detection (3-sigma rule)
   - Create incidents for significant deviations

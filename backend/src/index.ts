@@ -8,6 +8,7 @@ import { rateLimit } from './middleware/rateLimit.js';
 import authRoutes from './routes/auth.js';
 import projectRoutes from './routes/projects.js';
 import llmRoutes from './routes/llm.js';
+import { initializeIncidentDetectionCron } from './cron/incidentDetection.js';
 
 // Initialize Express app
 const app: Express = express();
@@ -98,6 +99,14 @@ const server = app.listen(PORT, () => {
   logger.info(`🚀 LLMGuard Backend server running on port ${PORT}`);
   logger.info(`📝 Environment: ${env.NODE_ENV}`);
   logger.info(`🔗 API Base URL: ${env.API_BASE_URL}`);
+
+  // Initialize scheduled incident detection cron job
+  try {
+    initializeIncidentDetectionCron();
+  } catch (error) {
+    logger.error({ error }, 'Failed to initialize cron jobs');
+    // Don't exit on cron initialization failure - server can still run
+  }
 });
 
 // ============================================================================
