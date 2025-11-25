@@ -37,26 +37,26 @@
 
 ## Phase 2: Authentication & Security
 
-- [ ] 6. Implement JWT utilities and token management
+- [x] 6. Implement JWT utilities and token management
   - Create utils/jwt.ts with token generation and verification functions
   - Implement access token (15-min) and refresh token (7-day) generation
   - Add token validation with error handling
   - _Requirements: 1.2, 1.3_
 
-- [ ] 7. Implement password hashing utilities
+- [x] 7. Implement password hashing utilities
   - Create utils/crypto.ts with bcrypt hashing and verification
   - Implement password strength validation
   - Add API key hashing functions
   - _Requirements: 1.1, 2.1_
 
-- [ ] 8. Create authentication service
+- [x] 8. Create authentication service
   - Create services/authService.ts with register, login, refresh, logout methods
   - Implement password validation and hashing
   - Add JWT token generation and refresh logic
   - Implement email validation
   - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5_
 
-- [ ] 9. Create authentication routes and controller
+- [x] 9. Create authentication routes and controller
   - Create routes/auth.ts with POST /auth/register, /auth/login, /auth/refresh-token, /auth/logout
   - Create controllers/authController.ts with request handlers
   - Create validators/auth.ts with Zod schemas for registration and login

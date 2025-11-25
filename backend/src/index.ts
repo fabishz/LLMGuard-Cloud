@@ -4,6 +4,7 @@ import env from './config/env.js';
 import { logger } from './utils/logger.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { requestLogger } from './middleware/logging.js';
+import authRoutes from './routes/auth.js';
 
 // Initialize Express app
 const app: Express = express();
@@ -39,12 +40,13 @@ app.get('/health', (_req: Request, res: Response) => {
 });
 
 // ============================================================================
-// ROUTE REGISTRATION (will be implemented in subsequent tasks)
+// ROUTE REGISTRATION
 // ============================================================================
 
-// Placeholder for route registration
-// Routes will be imported and registered here in subsequent tasks:
-// - Authentication routes
+// Authentication routes
+app.use('/auth', authRoutes);
+
+// Placeholder for additional routes (will be implemented in subsequent tasks):
 // - Project routes
 // - LLM routes
 // - Incident routes
