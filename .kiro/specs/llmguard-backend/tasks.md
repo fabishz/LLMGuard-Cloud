@@ -69,7 +69,7 @@
   - Implement permission checking middleware (admin vs user)
   - _Requirements: 1.2, 2.4, 10.2_
 
-- [ ] 11. Implement rate limiting middleware
+- [x] 11. Implement rate limiting middleware
   - Create middleware/rateLimit.ts with sliding window rate limiter
   - Support per-user and per-API-key rate limits
   - Return 429 status with retry-after header

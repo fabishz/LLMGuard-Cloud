@@ -4,6 +4,7 @@ import env from './config/env.js';
 import { logger } from './utils/logger.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { requestLogger } from './middleware/logging.js';
+import { rateLimit } from './middleware/rateLimit.js';
 import authRoutes from './routes/auth.js';
 
 // Initialize Express app
@@ -30,7 +31,10 @@ app.use(
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
-// 4. Health check endpoint (before route registration)
+// 4. Rate limiting middleware (applies to authenticated requests)
+app.use(rateLimit());
+
+// 5. Health check endpoint (before route registration)
 app.get('/health', (_req: Request, res: Response) => {
   res.status(200).json({
     status: 'ok',
