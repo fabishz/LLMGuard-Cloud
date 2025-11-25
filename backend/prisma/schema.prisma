@@ -1,0 +1,146 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                String    @id @default(cuid())
+  email             String    @unique
+  password          String
+  name              String?
+  role              String    @default("user")
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  projects          Project[]
+  billing           Billing?
+  userSettings      UserSettings?
+}
+
+model Project {
+  id                String    @id @default(cuid())
+  userId            String
+  name              String
+  apiKeyHash        String    @unique
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  apiKeys           ApiKey[]
+  llmRequests       LLMRequest[]
+  incidents         Incident[]
+  projectSettings   ProjectSettings?
+
+  @@index([userId])
+}
+
+model ApiKey {
+  id                String    @id @default(cuid())
+  projectId         String
+  keyHash           String    @unique
+  createdAt         DateTime  @default(now())
+  rotatedAt         DateTime?
+
+  project           Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+}
+
+model LLMRequest {
+  id                String    @id @default(cuid())
+  projectId         String
+  prompt            String
+  response          String
+  model             String
+  latency           Int
+  tokens            Int
+  riskScore         Int
+  error             String?
+  createdAt         DateTime  @default(now())
+
+  project           Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, createdAt])
+  @@index([projectId, riskScore])
+}
+
+model Incident {
+  id                String    @id @default(cuid())
+  projectId         String
+  severity          String
+  triggerType       String
+  status            String    @default("open")
+  rootCause         String?
+  recommendedFix    String?
+  affectedRequests  Int       @default(0)
+  metadata          Json      @default("{}")
+  createdAt         DateTime  @default(now())
+  resolvedAt        DateTime?
+
+  project           Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  remediationActions RemediationAction[]
+
+  @@index([projectId, status])
+  @@index([projectId, createdAt])
+}
+
+model RemediationAction {
+  id                String    @id @default(cuid())
+  incidentId        String
+  actionType        String
+  parameters        Json      @default("{}")
+  executed          Boolean   @default(false)
+  executedAt        DateTime?
+  metadata          Json      @default("{}")
+  createdAt         DateTime  @default(now())
+
+  incident          Incident  @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+
+  @@index([incidentId])
+}
+
+model Billing {
+  id                String    @id @default(cuid())
+  userId            String    @unique
+  plan              String    @default("free")
+  stripeCustomerId  String?
+  stripeSubscriptionId String?
+  usage             Int       @default(0)
+  monthlyLimit      Int       @default(10000)
+  nextBillingDate   DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model UserSettings {
+  id                String    @id @default(cuid())
+  userId            String    @unique
+  name              String?
+  email             String?
+  role              String?
+  metadata          Json      @default("{}")
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model ProjectSettings {
+  id                String    @id @default(cuid())
+  projectId         String    @unique
+  preferredModel    String    @default("gpt-4")
+  safetyThreshold   Int       @default(80)
+  rateLimit         Int       @default(100)
+  systemPrompt      String?
+  metadata          Json      @default("{}")
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  project           Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
