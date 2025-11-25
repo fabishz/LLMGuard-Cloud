@@ -143,7 +143,7 @@
   - Add error handling and logging
   - _Requirements: 4.3_
 
-- [ ] 21. Integrate OpenAI for RCA generation
+- [x] 21. Integrate OpenAI for RCA generation
   - Create integrations/openai.ts with OpenAI API client
   - Implement RCA prompt generation
   - Add response parsing for severity, root cause, and recommended fix

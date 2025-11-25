@@ -721,4 +721,137 @@ describe('Incident Detection Service', { timeout: 30000 }, () => {
       await prisma.project.delete({ where: { id: otherProject.id } });
     });
   });
+
+  describe('generateIncidentRCA', () => {
+    it('should generate RCA for incident with LLM requests', async () => {
+      // Create some LLM requests
+      for (let i = 0; i < 5; i++) {
+        await llmService.logLLMRequest(testProjectId, {
+          prompt: `Test prompt ${i}`,
+          response: `Test response ${i}`,
+          model: 'gpt-4',
+          latency: 100 + i * 100,
+          tokens: 100 + i * 50,
+        });
+      }
+
+      // Create an incident
+      const incident = await prisma.incident.create({
+        data: {
+          projectId: testProjectId,
+          severity: 'high',
+          triggerType: 'latency_threshold',
+          status: 'open',
+          metadata: { avgLatency: 500 },
+        },
+      });
+
+      // Generate RCA
+      const updated = await incidentService.generateIncidentRCA(
+        testProjectId,
+        incident.id
+      );
+
+      expect(updated.rootCause).toBeDefined();
+      expect(updated.recommendedFix).toBeDefined();
+      expect(updated.affectedRequests).toBeGreaterThan(0);
+      expect(updated.severity).toBeDefined();
+
+      // Verify in database
+      const stored = await prisma.incident.findUnique({
+        where: { id: incident.id },
+      });
+      expect(stored?.rootCause).toBeDefined();
+      expect(stored?.recommendedFix).toBeDefined();
+    });
+
+    it('should handle incident with no LLM requests', async () => {
+      // Create an incident without any LLM requests
+      const incident = await prisma.incident.create({
+        data: {
+          projectId: testProjectId,
+          severity: 'medium',
+          triggerType: 'webhook',
+          status: 'open',
+        },
+      });
+
+      // Generate RCA - should use fallback
+      const updated = await incidentService.generateIncidentRCA(
+        testProjectId,
+        incident.id
+      );
+
+      expect(updated.rootCause).toBeDefined();
+      expect(updated.recommendedFix).toBeDefined();
+      expect(updated.affectedRequests).toBe(0);
+    });
+
+    it('should throw NotFoundError for non-existent incident', async () => {
+      await expect(
+        incidentService.generateIncidentRCA(testProjectId, 'non-existent-id')
+      ).rejects.toThrow();
+    });
+
+    it('should throw NotFoundError if incident belongs to different project', async () => {
+      // Create another project
+      const otherProject = await prisma.project.create({
+        data: {
+          userId: testUserId,
+          name: 'Other Project',
+          apiKeyHash: `hash-other-${Date.now()}`,
+        },
+      });
+
+      // Create incident in other project
+      const incident = await prisma.incident.create({
+        data: {
+          projectId: otherProject.id,
+          severity: 'high',
+          triggerType: 'latency_threshold',
+          status: 'open',
+        },
+      });
+
+      await expect(
+        incidentService.generateIncidentRCA(testProjectId, incident.id)
+      ).rejects.toThrow();
+
+      // Clean up
+      await prisma.incident.delete({ where: { id: incident.id } });
+      await prisma.project.delete({ where: { id: otherProject.id } });
+    });
+
+    it('should support custom request limit', async () => {
+      // Create 10 LLM requests
+      for (let i = 0; i < 10; i++) {
+        await llmService.logLLMRequest(testProjectId, {
+          prompt: `Test prompt ${i}`,
+          response: `Test response ${i}`,
+          model: 'gpt-4',
+          latency: 100,
+          tokens: 100,
+        });
+      }
+
+      // Create an incident
+      const incident = await prisma.incident.create({
+        data: {
+          projectId: testProjectId,
+          severity: 'high',
+          triggerType: 'latency_threshold',
+          status: 'open',
+        },
+      });
+
+      // Generate RCA with custom limit
+      const updated = await incidentService.generateIncidentRCA(
+        testProjectId,
+        incident.id,
+        5 // Only fetch 5 requests
+      );
+
+      expect(updated.affectedRequests).toBeLessThanOrEqual(5);
+    });
+  });
 });

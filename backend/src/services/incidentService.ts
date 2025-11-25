@@ -1,7 +1,8 @@
 import prisma from '../config/database.js';
 import { logger } from '../utils/logger.js';
 import { NotFoundError } from '../utils/errors.js';
-import { getLLMRequests, getLLMRequestStats } from './llmService.js';
+import { getLLMRequests, getLLMRequestStats, getRecentLLMRequests } from './llmService.js';
+import { generateRCA, RCAResult } from '../integrations/openai.js';
 
 /**
  * Incident severity levels
@@ -392,6 +393,82 @@ export async function runAllDetections(
   } catch (error) {
     logger.error({ error, projectId }, 'Error running all detections');
     return null;
+  }
+}
+
+/**
+ * Generate and store RCA for an incident
+ * Fetches related LLM requests and uses OpenAI to generate root cause analysis
+ * 
+ * @param projectId - Project ID
+ * @param incidentId - Incident ID
+ * @param requestLimit - Number of related requests to fetch (default: 20)
+ * @returns Updated incident with RCA
+ */
+export async function generateIncidentRCA(
+  projectId: string,
+  incidentId: string,
+  requestLimit: number = 20
+): Promise<any> {
+  try {
+    // Get incident
+    const incident = await getIncident(projectId, incidentId);
+
+    // Fetch related LLM requests
+    const requests = await getRecentLLMRequests(projectId, requestLimit);
+
+    if (requests.length === 0) {
+      logger.warn({ projectId, incidentId }, 'No LLM requests found for RCA generation');
+    }
+
+    // Generate RCA using OpenAI
+    const rca: RCAResult = await generateRCA(
+      requests.map((req) => ({
+        id: req.id,
+        prompt: req.prompt,
+        response: req.response,
+        model: req.model,
+        latency: req.latency,
+        tokens: req.tokens,
+        riskScore: req.riskScore,
+        error: req.error,
+        createdAt: req.createdAt,
+      })),
+      {
+        triggerType: incident.triggerType,
+        severity: incident.severity,
+        ...incident.metadata,
+      }
+    );
+
+    // Update incident with RCA
+    const updated = await prisma.incident.update({
+      where: { id: incidentId },
+      data: {
+        rootCause: rca.rootCause,
+        recommendedFix: rca.recommendedFix,
+        severity: rca.severity, // Update severity if OpenAI provided a more specific one
+        affectedRequests: requests.length,
+      },
+      include: {
+        remediationActions: true,
+      },
+    });
+
+    logger.info(
+      {
+        incidentId,
+        projectId,
+        severity: rca.severity,
+        affectedRequests: requests.length,
+      },
+      'RCA generated and stored for incident'
+    );
+
+    return updated;
+  } catch (error) {
+    logger.error({ error, projectId, incidentId }, 'Error generating RCA for incident');
+    throw error;
   }
 }
 
