@@ -91,7 +91,7 @@
   - Create validators/project.ts with Zod schemas
   - _Requirements: 2.1, 2.2, 2.3, 2.4_
 
-- [ ] 14. Implement API key hashing and validation
+- [x] 14. Implement API key hashing and validation
   - Create utility functions for API key generation (UUID v4)
   - Implement bcrypt hashing for API key storage
   - Create middleware to validate API keys against projects

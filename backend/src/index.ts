@@ -11,6 +11,7 @@ import projectRoutes from './routes/projects.js';
 // Initialize Express app
 const app: Express = express();
 
+
 // ============================================================================
 // MIDDLEWARE SETUP
 // ============================================================================
