@@ -196,7 +196,7 @@
 
 ## Phase 7: Metrics & Analytics
 
-- [ ] 28. Create metrics service
+- [-] 28. Create metrics service
   - Create services/metricsService.ts with aggregation logic
   - Implement daily summary calculation
   - Add model usage breakdown
@@ -204,7 +204,7 @@
   - Add cost estimation based on model rates
   - _Requirements: 6.1, 6.2, 6.3_
 
-- [ ] 29. Create metrics routes and controller
+- [x] 29. Create metrics routes and controller
   - Create routes/metrics.ts with GET /metrics endpoint
   - Create controllers/metricsController.ts with request handler
   - Create validators/metrics.ts with Zod schemas
