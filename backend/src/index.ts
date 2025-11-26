@@ -11,6 +11,7 @@ import llmRoutes from './routes/llm.js';
 import incidentRoutes from './routes/incidents.js';
 import metricsRoutes from './routes/metrics.js';
 import logsRoutes from './routes/logs.js';
+import settingsRoutes from './routes/settings.js';
 import webhookRoutes from './routes/webhooks.js';
 import { initializeIncidentDetectionCron } from './cron/incidentDetection.js';
 import { initializeMetricsAggregationCron } from './cron/metricsAggregation.js';
@@ -77,9 +78,11 @@ app.use('/metrics', metricsRoutes);
 // Logs routes (nested under projects)
 app.use('/projects/:projectId/logs', logsRoutes);
 
+// Settings routes
+app.use('/settings', settingsRoutes);
+
 // Placeholder for additional routes (will be implemented in subsequent tasks):
 // - Remediation routes
-// - Settings routes
 // - Billing routes
 
 // ============================================================================
