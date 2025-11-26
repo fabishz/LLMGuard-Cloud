@@ -9,6 +9,7 @@ import authRoutes from './routes/auth.js';
 import projectRoutes from './routes/projects.js';
 import llmRoutes from './routes/llm.js';
 import incidentRoutes from './routes/incidents.js';
+import webhookRoutes from './routes/webhooks.js';
 import { initializeIncidentDetectionCron } from './cron/incidentDetection.js';
 
 // Initialize Express app
@@ -32,13 +33,6 @@ app.use(
   })
 );
 
-// 3. Body parsing middleware
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ limit: '10mb', extended: true }));
-
-// 4. Rate limiting middleware (applies to authenticated requests)
-app.use(rateLimit());
-
 // 5. Health check endpoint (before route registration)
 app.get('/health', (_req: Request, res: Response) => {
   res.status(200).json({
@@ -51,6 +45,16 @@ app.get('/health', (_req: Request, res: Response) => {
 // ============================================================================
 // ROUTE REGISTRATION
 // ============================================================================
+
+// Webhook routes (must be before global json middleware to capture raw body)
+app.use('/webhooks', webhookRoutes);
+
+// 3. Body parsing middleware (after webhooks to avoid interfering with signature validation)
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
+
+// 4. Rate limiting middleware (applies to authenticated requests)
+app.use(rateLimit());
 
 // Authentication routes
 app.use('/auth', authRoutes);
@@ -70,7 +74,6 @@ app.use('/projects/:projectId/incidents', incidentRoutes);
 // - Logs routes
 // - Settings routes
 // - Billing routes
-// - Webhook routes
 
 // ============================================================================
 // 404 HANDLER

@@ -164,7 +164,7 @@
   - Implement incident listing with filtering
   - _Requirements: 4.5, 4.6_
 
-- [ ] 24. Implement Datadog webhook handler
+- [x] 24. Implement Datadog webhook handler
   - Create integrations/webhookValidator.ts with signature validation
   - Create routes/webhooks.ts with POST /webhooks/datadog endpoint
   - Implement webhook parsing and incident creation
