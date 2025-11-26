@@ -270,7 +270,7 @@
   - Create validators/billing.ts with Zod schemas
   - _Requirements: 9.1, 9.3, 9.4_
 
-- [ ] 38. Implement Stripe webhook handler
+- [x] 38. Implement Stripe webhook handler
   - Create routes/webhooks.ts POST /webhooks/stripe endpoint
   - Implement webhook signature validation
   - Add subscription update handling

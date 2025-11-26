@@ -3,6 +3,8 @@ import env from '../config/env.js';
 import { logger } from '../utils/logger.js';
 import { validateDatadogWebhook, validateStripeWebhook } from '../integrations/webhookValidator.js';
 import * as incidentService from '../services/incidentService.js';
+import * as billingService from '../services/billingService.js';
+import prisma from '../config/database.js';
 import { ValidationError } from '../utils/errors.js';
 
 /**
@@ -113,7 +115,8 @@ export const handleDatadogWebhook = async (
  * POST /webhooks/stripe
  * 
  * Validates webhook signature and processes Stripe events
- * Requirements: 9.2
+ * Handles subscription updates and invoice tracking
+ * Requirements: 9.2, 9.5
  */
 export const handleStripeWebhook = async (
   req: Request,
@@ -160,18 +163,25 @@ export const handleStripeWebhook = async (
     );
 
     // Handle different event types
-    // Note: Actual implementation will be in task 38 (Stripe webhook handler)
-    // For now, we just acknowledge receipt
     switch (eventType) {
       case 'customer.subscription.updated':
+        await handleSubscriptionUpdated(event);
+        break;
+
       case 'customer.subscription.created':
+        await handleSubscriptionCreated(event);
+        break;
+
       case 'customer.subscription.deleted':
+        await handleSubscriptionDeleted(event);
+        break;
+
       case 'invoice.payment_succeeded':
+        await handleInvoicePaymentSucceeded(event);
+        break;
+
       case 'invoice.payment_failed':
-        logger.debug(
-          { eventType, eventId: event.id },
-          'Stripe event acknowledged (handler to be implemented in task 38)'
-        );
+        await handleInvoicePaymentFailed(event);
         break;
 
       default:
@@ -190,6 +200,325 @@ export const handleStripeWebhook = async (
     next(error);
   }
 };
+
+/**
+ * Handle customer.subscription.updated event
+ * Updates billing information when subscription is modified
+ * Requirements: 9.2, 9.5
+ */
+async function handleSubscriptionUpdated(event: any): Promise<void> {
+  try {
+    const subscription = event.data.object;
+
+    if (!subscription || !subscription.customer || !subscription.id) {
+      logger.warn('Invalid subscription data in webhook event');
+      return;
+    }
+
+    const customerId = typeof subscription.customer === 'string'
+      ? subscription.customer
+      : subscription.customer.id;
+
+    // Find user by Stripe customer ID
+    const billing = await prisma.billing.findFirst({
+      where: { stripeCustomerId: customerId },
+      include: { user: true },
+    });
+
+    if (!billing) {
+      logger.warn(
+        { customerId, subscriptionId: subscription.id },
+        'No billing record found for Stripe customer'
+      );
+      return;
+    }
+
+    // Extract plan from subscription items
+    let plan: 'free' | 'pro' | 'enterprise' = 'free';
+    if (subscription.items && subscription.items.data.length > 0) {
+      const priceId = subscription.items.data[0].price.id;
+      if (priceId.includes('pro')) {
+        plan = 'pro';
+      } else if (priceId.includes('enterprise')) {
+        plan = 'enterprise';
+      }
+    }
+
+    // Calculate next billing date
+    const nextBillingDate = new Date(subscription.current_period_end * 1000);
+
+    // Update billing information
+    await billingService.updateBillingFromWebhook(
+      billing.userId,
+      customerId,
+      subscription.id,
+      plan,
+      nextBillingDate
+    );
+
+    logger.info(
+      {
+        userId: billing.userId,
+        customerId,
+        subscriptionId: subscription.id,
+        plan,
+        status: subscription.status,
+      },
+      'Subscription updated from webhook'
+    );
+  } catch (error) {
+    logger.error(
+      { error, eventId: event.id },
+      'Error handling subscription.updated event'
+    );
+    throw error;
+  }
+}
+
+/**
+ * Handle customer.subscription.created event
+ * Creates or updates billing information when new subscription is created
+ * Requirements: 9.2, 9.5
+ */
+async function handleSubscriptionCreated(event: any): Promise<void> {
+  try {
+    const subscription = event.data.object;
+
+    if (!subscription || !subscription.customer || !subscription.id) {
+      logger.warn('Invalid subscription data in webhook event');
+      return;
+    }
+
+    const customerId = typeof subscription.customer === 'string'
+      ? subscription.customer
+      : subscription.customer.id;
+
+    // Find user by Stripe customer ID
+    const billing = await prisma.billing.findFirst({
+      where: { stripeCustomerId: customerId },
+      include: { user: true },
+    });
+
+    if (!billing) {
+      logger.warn(
+        { customerId, subscriptionId: subscription.id },
+        'No billing record found for Stripe customer'
+      );
+      return;
+    }
+
+    // Extract plan from subscription items
+    let plan: 'free' | 'pro' | 'enterprise' = 'free';
+    if (subscription.items && subscription.items.data.length > 0) {
+      const priceId = subscription.items.data[0].price.id;
+      if (priceId.includes('pro')) {
+        plan = 'pro';
+      } else if (priceId.includes('enterprise')) {
+        plan = 'enterprise';
+      }
+    }
+
+    // Calculate next billing date
+    const nextBillingDate = new Date(subscription.current_period_end * 1000);
+
+    // Update billing information
+    await billingService.updateBillingFromWebhook(
+      billing.userId,
+      customerId,
+      subscription.id,
+      plan,
+      nextBillingDate
+    );
+
+    logger.info(
+      {
+        userId: billing.userId,
+        customerId,
+        subscriptionId: subscription.id,
+        plan,
+        status: subscription.status,
+      },
+      'Subscription created from webhook'
+    );
+  } catch (error) {
+    logger.error(
+      { error, eventId: event.id },
+      'Error handling subscription.created event'
+    );
+    throw error;
+  }
+}
+
+/**
+ * Handle customer.subscription.deleted event
+ * Updates billing information when subscription is cancelled
+ * Requirements: 9.2, 9.5
+ */
+async function handleSubscriptionDeleted(event: any): Promise<void> {
+  try {
+    const subscription = event.data.object;
+
+    if (!subscription || !subscription.customer || !subscription.id) {
+      logger.warn('Invalid subscription data in webhook event');
+      return;
+    }
+
+    const customerId = typeof subscription.customer === 'string'
+      ? subscription.customer
+      : subscription.customer.id;
+
+    // Find user by Stripe customer ID
+    const billing = await prisma.billing.findFirst({
+      where: { stripeCustomerId: customerId },
+      include: { user: true },
+    });
+
+    if (!billing) {
+      logger.warn(
+        { customerId, subscriptionId: subscription.id },
+        'No billing record found for Stripe customer'
+      );
+      return;
+    }
+
+    // Downgrade to free plan when subscription is deleted
+    await prisma.billing.update({
+      where: { userId: billing.userId },
+      data: {
+        plan: 'free',
+        stripeSubscriptionId: null,
+        monthlyLimit: 10000, // Free plan limit
+      },
+    });
+
+    logger.info(
+      {
+        userId: billing.userId,
+        customerId,
+        subscriptionId: subscription.id,
+      },
+      'Subscription deleted from webhook, downgraded to free plan'
+    );
+  } catch (error) {
+    logger.error(
+      { error, eventId: event.id },
+      'Error handling subscription.deleted event'
+    );
+    throw error;
+  }
+}
+
+/**
+ * Handle invoice.payment_succeeded event
+ * Tracks successful invoice payments
+ * Requirements: 9.2, 9.5
+ */
+async function handleInvoicePaymentSucceeded(event: any): Promise<void> {
+  try {
+    const invoice = event.data.object;
+
+    if (!invoice || !invoice.customer || !invoice.id) {
+      logger.warn('Invalid invoice data in webhook event');
+      return;
+    }
+
+    const customerId = typeof invoice.customer === 'string'
+      ? invoice.customer
+      : invoice.customer.id;
+
+    // Find user by Stripe customer ID
+    const billing = await prisma.billing.findFirst({
+      where: { stripeCustomerId: customerId },
+      include: { user: true },
+    });
+
+    if (!billing) {
+      logger.warn(
+        { customerId, invoiceId: invoice.id },
+        'No billing record found for Stripe customer'
+      );
+      return;
+    }
+
+    logger.info(
+      {
+        userId: billing.userId,
+        customerId,
+        invoiceId: invoice.id,
+        amount: invoice.amount_paid / 100,
+        currency: invoice.currency.toUpperCase(),
+        status: invoice.status,
+      },
+      'Invoice payment succeeded'
+    );
+
+    // Optional: Store invoice metadata in database for audit trail
+    // This could be extended to create an Invoice model in Prisma
+  } catch (error) {
+    logger.error(
+      { error, eventId: event.id },
+      'Error handling invoice.payment_succeeded event'
+    );
+    throw error;
+  }
+}
+
+/**
+ * Handle invoice.payment_failed event
+ * Tracks failed invoice payments
+ * Requirements: 9.2, 9.5
+ */
+async function handleInvoicePaymentFailed(event: any): Promise<void> {
+  try {
+    const invoice = event.data.object;
+
+    if (!invoice || !invoice.customer || !invoice.id) {
+      logger.warn('Invalid invoice data in webhook event');
+      return;
+    }
+
+    const customerId = typeof invoice.customer === 'string'
+      ? invoice.customer
+      : invoice.customer.id;
+
+    // Find user by Stripe customer ID
+    const billing = await prisma.billing.findFirst({
+      where: { stripeCustomerId: customerId },
+      include: { user: true },
+    });
+
+    if (!billing) {
+      logger.warn(
+        { customerId, invoiceId: invoice.id },
+        'No billing record found for Stripe customer'
+      );
+      return;
+    }
+
+    logger.warn(
+      {
+        userId: billing.userId,
+        customerId,
+        invoiceId: invoice.id,
+        amount: invoice.amount_due / 100,
+        currency: invoice.currency.toUpperCase(),
+        status: invoice.status,
+        failureCode: invoice.last_payment_error?.code,
+        failureMessage: invoice.last_payment_error?.message,
+      },
+      'Invoice payment failed'
+    );
+
+    // Optional: Send notification to user about failed payment
+    // This could be extended to create a notification system
+  } catch (error) {
+    logger.error(
+      { error, eventId: event.id },
+      'Error handling invoice.payment_failed event'
+    );
+    throw error;
+  }
+}
 
 /**
  * Extract project ID from Datadog alert
