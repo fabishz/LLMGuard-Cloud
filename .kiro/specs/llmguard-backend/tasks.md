@@ -180,7 +180,7 @@
   - Implement constraint enforcement on requests
   - _Requirements: 5.1, 5.2, 5.3, 5.4_
 
-- [ ] 26. Create remediation routes and controller
+- [x] 26. Create remediation routes and controller
   - Create routes/remediations.ts with POST /incidents/:id/apply-remediation
   - Create controllers/remediationController.ts with request handlers
   - Create validators/remediation.ts with Zod schemas

@@ -6,6 +6,7 @@ import {
   incidentWithProjectIdSchema,
   listIncidentsSchema,
 } from '../validators/incident.js';
+import remediationRoutes from './remediations.js';
 
 const router: ExpressRouter = Router({ mergeParams: true });
 
@@ -51,5 +52,15 @@ router.post(
   verifyProjectOwnership,
   incidentController.resolveIncident
 );
+
+/**
+ * Remediation routes (nested under incidents)
+ * POST /projects/:projectId/incidents/:incidentId/remediations
+ * GET /projects/:projectId/incidents/:incidentId/remediations
+ * GET /projects/:projectId/incidents/:incidentId/remediations/:actionId
+ * POST /projects/:projectId/incidents/:incidentId/remediations/:actionId/apply
+ * DELETE /projects/:projectId/incidents/:incidentId/remediations/:actionId
+ */
+router.use('/:incidentId/remediations', remediationRoutes);
 
 export default router;
