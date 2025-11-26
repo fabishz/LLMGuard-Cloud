@@ -173,7 +173,7 @@
 
 ## Phase 6: Auto-Remediation Engine
 
-- [ ] 25. Create remediation service
+- [x] 25. Create remediation service
   - Create services/remediationService.ts with action application logic
   - Implement support for all action types (switch_model, increase_safety_threshold, disable_endpoint, reset_settings, change_system_prompt, rate_limit_user)
   - Add action logging with metadata
