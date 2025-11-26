@@ -144,3 +144,23 @@ model ProjectSettings {
 
   project           Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
 }
+
+model MetricsCache {
+  id                String    @id @default(cuid())
+  projectId         String
+  date              DateTime  @db.Date
+  totalRequests     Int       @default(0)
+  errorCount        Int       @default(0)
+  errorRate         Float     @default(0)
+  averageLatency    Int       @default(0)
+  totalTokens       Int       @default(0)
+  estimatedCost     Float     @default(0)
+  highRiskCount     Int       @default(0)
+  averageRiskScore  Float     @default(0)
+  modelBreakdown    Json      @default("[]")
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@unique([projectId, date])
+  @@index([projectId, date])
+}
