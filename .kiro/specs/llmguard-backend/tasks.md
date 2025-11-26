@@ -219,7 +219,7 @@
 
 ## Phase 8: Log Search & Filtering
 
-- [ ] 31. Create logs service
+- [x] 31. Create logs service
   - Create services/logsService.ts with query and filtering logic
   - Implement full-text search on prompt and response
   - Add filtering by model, risk score, date range
