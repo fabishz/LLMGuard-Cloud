@@ -235,14 +235,14 @@
 
 ## Phase 9: User & Project Settings
 
-- [ ] 33. Create settings service
+- [x] 33. Create settings service
   - Create services/settingsService.ts with profile and project settings management
   - Implement user profile retrieval and updates
   - Add project settings retrieval and updates
   - Implement validation for settings updates
   - _Requirements: 8.1, 8.2, 8.3, 8.4_
 
-- [ ] 34. Create settings routes and controller
+- [x] 34. Create settings routes and controller
   - Create routes/settings.ts with GET/POST /settings/profile, /settings/project, /settings/api-keys, /settings/model-settings
   - Create controllers/settingsController.ts with request handlers
   - Create validators/settings.ts with Zod schemas
@@ -250,21 +250,21 @@
 
 ## Phase 10: Billing & Stripe Integration
 
-- [ ] 35. Integrate Stripe SDK
+- [x] 35. Integrate Stripe SDK
   - Create integrations/stripe.ts with Stripe client initialization
   - Implement checkout session creation
   - Add billing portal session creation
   - Implement webhook signature validation
   - _Requirements: 9.1, 9.2, 9.3_
 
-- [ ] 36. Create billing service
+- [x] 36. Create billing service
   - Create services/billingService.ts with subscription management
   - Implement plan upgrade/downgrade logic
   - Add invoice retrieval
   - Implement usage tracking and limit enforcement
   - _Requirements: 9.1, 9.2, 9.4, 9.5_
 
-- [ ] 37. Create billing routes and controller
+- [x] 37. Create billing routes and controller
   - Create routes/billing.ts with POST /billing/checkout, /billing/portal, GET /billing/invoices
   - Create controllers/billingController.ts with request handlers
   - Create validators/billing.ts with Zod schemas

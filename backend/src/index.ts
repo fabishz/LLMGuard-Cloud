@@ -12,6 +12,7 @@ import incidentRoutes from './routes/incidents.js';
 import metricsRoutes from './routes/metrics.js';
 import logsRoutes from './routes/logs.js';
 import settingsRoutes from './routes/settings.js';
+import billingRoutes from './routes/billing.js';
 import webhookRoutes from './routes/webhooks.js';
 import { initializeIncidentDetectionCron } from './cron/incidentDetection.js';
 import { initializeMetricsAggregationCron } from './cron/metricsAggregation.js';
@@ -81,9 +82,11 @@ app.use('/projects/:projectId/logs', logsRoutes);
 // Settings routes
 app.use('/settings', settingsRoutes);
 
+// Billing routes
+app.use('/billing', billingRoutes);
+
 // Placeholder for additional routes (will be implemented in subsequent tasks):
 // - Remediation routes
-// - Billing routes
 
 // ============================================================================
 // 404 HANDLER
