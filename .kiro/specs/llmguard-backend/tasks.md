@@ -226,7 +226,7 @@
   - Implement sorting by timestamp, latency, risk score
   - _Requirements: 7.1, 7.2, 7.3_
 
-- [ ] 32. Create logs routes and controller
+- [x] 32. Create logs routes and controller
   - Create routes/logs.ts with GET /logs endpoint
   - Create controllers/logsController.ts with request handler
   - Create validators/logs.ts with Zod schemas
