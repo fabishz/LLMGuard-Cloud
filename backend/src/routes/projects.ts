@@ -1,5 +1,6 @@
 import { Router, type Router as ExpressRouter } from 'express';
 import * as projectController from '../controllers/projectController.js';
+import * as remediationController from '../controllers/remediationController.js';
 import { authenticateJWT, verifyProjectOwnership } from '../middleware/auth.js';
 import { validateBody, validateParams } from '../middleware/validation.js';
 import { createProjectSchema, projectIdSchema, apiKeyIdSchema } from '../validators/project.js';
@@ -92,6 +93,19 @@ router.delete(
   validateParams(apiKeyIdSchema),
   verifyProjectOwnership,
   projectController.deleteApiKey
+);
+
+/**
+ * GET /projects/:projectId/remediation/constraints
+ * Get active remediation constraints for a project
+ * Response: { constraints }
+ * Requirements: 5.3
+ */
+router.get(
+  '/:projectId/remediation/constraints',
+  validateParams(projectIdSchema),
+  verifyProjectOwnership,
+  remediationController.getActiveConstraints
 );
 
 export default router;

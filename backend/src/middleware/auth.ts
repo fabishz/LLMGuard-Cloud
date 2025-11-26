@@ -14,6 +14,10 @@ declare global {
       user?: JWTPayload;
       projectId?: string;
       apiKey?: string;
+      userId?: string;
+      remediationConstraints?: any[];
+      remediationViolation?: any;
+      remediationRateLimit?: number;
     }
   }
 }
@@ -40,6 +44,7 @@ export const authenticateJWT = (req: Request, _res: Response, next: NextFunction
 
     const payload = verifyAccessToken(token);
     req.user = payload;
+    req.userId = payload.userId;
 
     logger.debug({ requestId: req.requestId, userId: payload.userId }, 'JWT authentication successful');
     next();

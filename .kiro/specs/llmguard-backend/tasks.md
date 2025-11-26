@@ -187,7 +187,7 @@
   - Implement remediation history retrieval
   - _Requirements: 5.1, 5.2, 5.4_
 
-- [ ] 27. Implement remediation action enforcement
+- [x] 27. Implement remediation action enforcement
   - Add remediation constraint checking in LLM request validation
   - Implement model switching logic (mock)
   - Add safety threshold enforcement

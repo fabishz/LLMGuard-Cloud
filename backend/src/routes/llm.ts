@@ -1,6 +1,7 @@
 import { Router, type Router as ExpressRouter } from 'express';
 import * as llmController from '../controllers/llmController.js';
 import { authenticateApiKey } from '../middleware/auth.js';
+import { enforceRemediationConstraints, enforceRemediationRateLimit } from '../middleware/remediationEnforcement.js';
 import { validateBody, validateParams, validateQuery } from '../middleware/validation.js';
 import { logLLMRequestSchema, queryLLMRequestsSchema, requestIdSchema } from '../validators/llm.js';
 
@@ -8,6 +9,10 @@ const router: ExpressRouter = Router();
 
 // All LLM routes require API key authentication
 router.use(authenticateApiKey);
+
+// Apply remediation enforcement middleware to all LLM routes
+router.use(enforceRemediationConstraints);
+router.use(enforceRemediationRateLimit);
 
 /**
  * POST /llm/request

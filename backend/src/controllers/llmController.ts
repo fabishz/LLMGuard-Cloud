@@ -1,11 +1,12 @@
 import { Request, Response, NextFunction } from 'express';
 import * as llmService from '../services/llmService.js';
+import * as remediationService from '../services/remediationService.js';
 import { logger } from '../utils/logger.js';
 
 /**
  * Log an LLM request with risk scoring
  * POST /llm/request
- * Requirements: 3.1, 3.2, 3.3, 3.4
+ * Requirements: 3.1, 3.2, 3.3, 3.4, 5.3
  */
 export async function logRequest(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
@@ -14,8 +15,31 @@ export async function logRequest(req: Request, res: Response, next: NextFunction
       throw new Error('Project ID not found in request');
     }
 
-    const { prompt, response, model, latency, tokens, error } = req.body;
+    let { prompt, response, model, latency, tokens, error } = req.body;
 
+    // Check remediation constraints before logging
+    const requestData = {
+      model,
+      userId: req.userId,
+      endpoint: req.path,
+    };
+
+    const violation = await remediationService.checkRemediationConstraints(projectId, requestData);
+
+    // Enforce model switching constraint
+    if (violation.violated && violation.actionType === 'switch_model') {
+      logger.info(
+        {
+          projectId,
+          originalModel: model,
+          requiredModel: violation.details?.requiredModel,
+        },
+        'Model switching remediation enforced'
+      );
+      model = violation.details?.requiredModel || model;
+    }
+
+    // Log the LLM request
     const llmRequest = await llmService.logLLMRequest(projectId, {
       prompt,
       response,
@@ -24,6 +48,56 @@ export async function logRequest(req: Request, res: Response, next: NextFunction
       tokens,
       error,
     });
+
+    // Check safety threshold constraint after computing risk score
+    const safetyViolation = await remediationService.checkRemediationConstraints(projectId, {
+      model,
+      userId: req.userId,
+      endpoint: req.path,
+      riskScore: llmRequest.riskScore,
+    });
+
+    if (safetyViolation.violated && safetyViolation.actionType === 'increase_safety_threshold') {
+      logger.warn(
+        {
+          projectId,
+          requestId: llmRequest.id,
+          riskScore: llmRequest.riskScore,
+          threshold: safetyViolation.details?.threshold,
+        },
+        'Safety threshold remediation constraint violated'
+      );
+
+      // Return 403 Forbidden for safety threshold violations
+      res.status(403).json({
+        error: {
+          code: 'SAFETY_THRESHOLD_EXCEEDED',
+          message: safetyViolation.reason,
+          details: safetyViolation.details,
+        },
+      });
+      return;
+    }
+
+    // Check endpoint disabling constraint
+    if (safetyViolation.violated && safetyViolation.actionType === 'disable_endpoint') {
+      logger.warn(
+        {
+          projectId,
+          endpoint: req.path,
+        },
+        'Endpoint disabled by remediation constraint'
+      );
+
+      res.status(403).json({
+        error: {
+          code: 'ENDPOINT_DISABLED',
+          message: safetyViolation.reason,
+          details: safetyViolation.details,
+        },
+      });
+      return;
+    }
 
     logger.info(
       {

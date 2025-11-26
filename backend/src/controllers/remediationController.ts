@@ -4,18 +4,18 @@ import { logger } from '../utils/logger.js';
 
 /**
  * Create a remediation action for an incident
- * POST /projects/:projectId/incidents/:incidentId/remediations
- * Body: { actionType, parameters }
- * Response: { action }
- * Requirements: 5.1, 5.2
+ * POST /projects/:projectId/incidents/:incidentId/remediation
+ * Requirements: 5.1, 5.2, 5.3
  */
-export async function createRemediationAction(
-  req: Request,
-  res: Response,
-  next: NextFunction
-): Promise<void> {
+export async function createRemediationAction(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const { projectId, incidentId } = req.params;
+    const projectId = req.params.projectId;
+    const incidentId = req.params.incidentId;
+
+    if (!projectId || !incidentId) {
+      throw new Error('Project ID and Incident ID are required');
+    }
+
     const { actionType, parameters } = req.body;
 
     const action = await remediationService.createRemediationAction(projectId, incidentId, {
@@ -24,13 +24,17 @@ export async function createRemediationAction(
     });
 
     logger.info(
-      { projectId, incidentId, actionId: action.id, actionType },
-      'Remediation action created successfully'
+      {
+        projectId,
+        incidentId,
+        actionId: action.id,
+        actionType,
+      },
+      'Remediation action created'
     );
 
     res.status(201).json({
       action,
-      message: 'Remediation action created successfully',
     });
   } catch (error) {
     next(error);
@@ -39,28 +43,33 @@ export async function createRemediationAction(
 
 /**
  * Apply a remediation action (mark as executed)
- * POST /projects/:projectId/incidents/:incidentId/remediations/:actionId/apply
- * Response: { action }
- * Requirements: 5.2, 5.4
+ * POST /projects/:projectId/incidents/:incidentId/remediation/:actionId/apply
+ * Requirements: 5.2, 5.3
  */
-export async function applyRemediationAction(
-  req: Request,
-  res: Response,
-  next: NextFunction
-): Promise<void> {
+export async function applyRemediationAction(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const { projectId, incidentId, actionId } = req.params;
+    const projectId = req.params.projectId;
+    const incidentId = req.params.incidentId;
+    const actionId = req.params.actionId;
+
+    if (!projectId || !incidentId || !actionId) {
+      throw new Error('Project ID, Incident ID, and Action ID are required');
+    }
 
     const action = await remediationService.applyRemediationAction(projectId, incidentId, actionId);
 
     logger.info(
-      { projectId, incidentId, actionId, actionType: action.actionType },
-      'Remediation action applied successfully'
+      {
+        projectId,
+        incidentId,
+        actionId,
+        actionType: action.actionType,
+      },
+      'Remediation action applied'
     );
 
     res.status(200).json({
       action,
-      message: 'Remediation action applied successfully',
     });
   } catch (error) {
     next(error);
@@ -68,24 +77,29 @@ export async function applyRemediationAction(
 }
 
 /**
- * Get a single remediation action by ID
- * GET /projects/:projectId/incidents/:incidentId/remediations/:actionId
- * Response: { action }
+ * Get a remediation action by ID
+ * GET /projects/:projectId/incidents/:incidentId/remediation/:actionId
  * Requirements: 5.4
  */
-export async function getRemediationAction(
-  req: Request,
-  res: Response,
-  next: NextFunction
-): Promise<void> {
+export async function getRemediationAction(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const { projectId, incidentId, actionId } = req.params;
+    const projectId = req.params.projectId;
+    const incidentId = req.params.incidentId;
+    const actionId = req.params.actionId;
+
+    if (!projectId || !incidentId || !actionId) {
+      throw new Error('Project ID, Incident ID, and Action ID are required');
+    }
 
     const action = await remediationService.getRemediationAction(projectId, incidentId, actionId);
 
     logger.info(
-      { projectId, incidentId, actionId },
-      'Remediation action retrieved successfully'
+      {
+        projectId,
+        incidentId,
+        actionId,
+      },
+      'Remediation action retrieved'
     );
 
     res.status(200).json({
@@ -97,39 +111,41 @@ export async function getRemediationAction(
 }
 
 /**
- * List all remediation actions for an incident
- * GET /projects/:projectId/incidents/:incidentId/remediations
- * Query: { limit?, page? }
- * Response: { actions, total, page, limit }
+ * Get all remediation actions for an incident
+ * GET /projects/:projectId/incidents/:incidentId/remediation
  * Requirements: 5.4
  */
-export async function listRemediationActions(
-  req: Request,
-  res: Response,
-  next: NextFunction
-): Promise<void> {
+export async function getRemediationActions(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const { projectId, incidentId } = req.params;
-    const { limit = 50, page = 1 } = req.query;
+    const projectId = req.params.projectId;
+    const incidentId = req.params.incidentId;
+    const { limit = 50, offset = 0 } = req.query;
 
-    // Calculate offset from page number
-    const offset = (Number(page) - 1) * Number(limit);
+    if (!projectId || !incidentId) {
+      throw new Error('Project ID and Incident ID are required');
+    }
 
     const actions = await remediationService.getRemediationActions(projectId, incidentId, {
-      limit: Number(limit),
-      offset,
+      limit: parseInt(limit as string, 10) || 50,
+      offset: parseInt(offset as string, 10) || 0,
     });
 
     logger.info(
-      { projectId, incidentId, limit, page, count: actions.length },
-      'Remediation actions listed successfully'
+      {
+        projectId,
+        incidentId,
+        count: actions.length,
+      },
+      'Remediation actions retrieved'
     );
 
     res.status(200).json({
       actions,
-      page: Number(page),
-      limit: Number(limit),
-      total: actions.length,
+      pagination: {
+        limit: parseInt(limit as string, 10) || 50,
+        offset: parseInt(offset as string, 10) || 0,
+        count: actions.length,
+      },
     });
   } catch (error) {
     next(error);
@@ -138,27 +154,61 @@ export async function listRemediationActions(
 
 /**
  * Delete a remediation action
- * DELETE /projects/:projectId/incidents/:incidentId/remediations/:actionId
- * Response: { message }
- * Requirements: 5.4
+ * DELETE /projects/:projectId/incidents/:incidentId/remediation/:actionId
+ * Requirements: 5.2
  */
-export async function deleteRemediationAction(
-  req: Request,
-  res: Response,
-  next: NextFunction
-): Promise<void> {
+export async function deleteRemediationAction(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const { projectId, incidentId, actionId } = req.params;
+    const projectId = req.params.projectId;
+    const incidentId = req.params.incidentId;
+    const actionId = req.params.actionId;
+
+    if (!projectId || !incidentId || !actionId) {
+      throw new Error('Project ID, Incident ID, and Action ID are required');
+    }
 
     await remediationService.deleteRemediationAction(projectId, incidentId, actionId);
 
     logger.info(
-      { projectId, incidentId, actionId },
-      'Remediation action deleted successfully'
+      {
+        projectId,
+        incidentId,
+        actionId,
+      },
+      'Remediation action deleted'
+    );
+
+    res.status(204).send();
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * Get active remediation constraints for a project
+ * GET /projects/:projectId/remediation/constraints
+ * Requirements: 5.3
+ */
+export async function getActiveConstraints(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const projectId = req.params.projectId;
+
+    if (!projectId) {
+      throw new Error('Project ID is required');
+    }
+
+    const constraints = await remediationService.getActiveRemediationConstraints(projectId);
+
+    logger.info(
+      {
+        projectId,
+        constraintCount: constraints.length,
+      },
+      'Active remediation constraints retrieved'
     );
 
     res.status(200).json({
-      message: 'Remediation action deleted successfully',
+      constraints,
     });
   } catch (error) {
     next(error);
