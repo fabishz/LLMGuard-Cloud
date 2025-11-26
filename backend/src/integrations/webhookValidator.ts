@@ -12,7 +12,7 @@ export interface ValidationResult {
 /**
  * Validate Datadog webhook signature
  * Datadog uses HMAC-SHA256 for webhook signatures
- * 
+ *
  * The signature is computed as:
  * signature = HMAC-SHA256(webhook_secret, request_body)
  * 
