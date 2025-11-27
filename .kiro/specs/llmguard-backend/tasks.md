@@ -294,14 +294,14 @@
 
 ## Phase 12: Integration & Testing
 
-- [ ] 41. Wire all routes together
+- [x] 41. Wire all routes together
   - Create routes/index.ts to combine all route modules
   - Register all routes in Express app
   - Implement route versioning (optional: /api/v1)
   - Test all endpoints for connectivity
   - _Requirements: 11.1_
 
-- [ ] 42. Implement graceful shutdown
+- [x] 42. Implement graceful shutdown
   - Add process signal handlers (SIGTERM, SIGINT)
   - Implement database connection cleanup
   - Add server shutdown with timeout
