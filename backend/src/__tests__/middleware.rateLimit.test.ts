@@ -6,7 +6,7 @@ import {
   getRateLimitStatus,
   clearAllRateLimits,
 } from '../middleware/rateLimit.js';
-import { RateLimitError } from '../utils/errors.js';
+
 import { randomUUID } from 'crypto';
 
 describe('Rate Limiting Middleware', () => {
@@ -30,19 +30,20 @@ describe('Rate Limiting Middleware', () => {
     // Mock response
     mockRes = {
       set: (key: string, value: string) => {
-        if (!mockRes.headers) mockRes.headers = {};
-        mockRes.headers[key] = value;
+        if (!(mockRes as any).headers) (mockRes as any).headers = {};
+        (mockRes as any).headers[key] = value;
+        return mockRes as any;
       },
       headers: {},
-    };
+    } as any;
 
     // Mock next function
     nextCalled = false;
     nextError = null;
-    mockNext = (error?: Error) => {
+    mockNext = ((error?: Error | string) => {
       nextCalled = true;
-      if (error) nextError = error;
-    };
+      if (error && error instanceof Error) nextError = error;
+    }) as any;
   });
 
   afterEach(() => {
@@ -52,7 +53,7 @@ describe('Rate Limiting Middleware', () => {
   describe('Basic Rate Limiting', () => {
     it('should allow requests when under the limit', async () => {
       const middleware = rateLimit(60000, 5); // 5 requests per minute
-      mockReq.user = { userId: 'user-1', role: 'user' };
+      mockReq.user = { userId: 'user-1', email: 'user@example.com', role: 'user' } as any;
 
       // Make 5 requests
       for (let i = 0; i < 5; i++) {
@@ -66,7 +67,7 @@ describe('Rate Limiting Middleware', () => {
 
     it('should block requests when limit is exceeded', async () => {
       const middleware = rateLimit(60000, 3); // 3 requests per minute
-      mockReq.user = { userId: 'user-1', role: 'user' };
+      mockReq.user = { userId: 'user-1', email: 'user@example.com', role: 'user' } as any;
 
       // Make 3 requests (should succeed)
       for (let i = 0; i < 3; i++) {
@@ -89,7 +90,7 @@ describe('Rate Limiting Middleware', () => {
 
     it('should set Retry-After header when rate limited', async () => {
       const middleware = rateLimit(60000, 2);
-      mockReq.user = { userId: 'user-1', role: 'user' };
+      mockReq.user = { userId: 'user-1', email: 'user@example.com', role: 'user' } as any;
 
       // Make 2 requests
       for (let i = 0; i < 2; i++) {
@@ -102,8 +103,8 @@ describe('Rate Limiting Middleware', () => {
       nextCalled = false;
       nextError = null;
       middleware(mockReq as Request, mockRes as Response, mockNext);
-      expect(mockRes.headers?.['Retry-After']).toBeDefined();
-      expect(parseInt(mockRes.headers?.['Retry-After'] as string)).toBeGreaterThan(0);
+      expect((mockRes as any).headers?.['Retry-After']).toBeDefined();
+      expect(parseInt((mockRes as any).headers?.['Retry-After'] as string)).toBeGreaterThan(0);
     });
   });
 
@@ -112,7 +113,7 @@ describe('Rate Limiting Middleware', () => {
       const middleware = rateLimit(60000, 2);
 
       // User 1 makes 2 requests
-      mockReq.user = { userId: 'user-1', role: 'user' };
+      mockReq.user = { userId: 'user-1', email: 'user@example.com', role: 'user' } as any;
       for (let i = 0; i < 2; i++) {
         nextCalled = false;
         nextError = null;
@@ -128,7 +129,7 @@ describe('Rate Limiting Middleware', () => {
       expect((nextError as any).code).toBe('RATE_LIMIT_EXCEEDED');
 
       // User 2 should still be able to make requests
-      mockReq.user = { userId: 'user-2', role: 'user' };
+      mockReq.user = { userId: 'user-2', email: 'user2@example.com', role: 'user' } as any;
       nextCalled = false;
       nextError = null;
       middleware(mockReq as Request, mockRes as Response, mockNext);
@@ -170,7 +171,7 @@ describe('Rate Limiting Middleware', () => {
 
       // Request with both API key and user ID
       mockReq.apiKey = 'key-1';
-      mockReq.user = { userId: 'user-1', role: 'user' };
+      mockReq.user = { userId: 'user-1', email: 'user@example.com', role: 'user' } as any;
 
       // Make 2 requests
       for (let i = 0; i < 2; i++) {
@@ -211,7 +212,7 @@ describe('Rate Limiting Middleware', () => {
   describe('Rate Limit Status', () => {
     it('should return correct rate limit status', async () => {
       const middleware = rateLimit(60000, 5);
-      mockReq.user = { userId: 'user-1', role: 'user' };
+      mockReq.user = { userId: 'user-1', email: 'user@example.com', role: 'user' } as any;
 
       // Make 3 requests
       for (let i = 0; i < 3; i++) {
@@ -229,7 +230,7 @@ describe('Rate Limiting Middleware', () => {
 
     it('should return zero remaining when limit is reached', async () => {
       const middleware = rateLimit(60000, 2);
-      mockReq.user = { userId: 'user-1', role: 'user' };
+      mockReq.user = { userId: 'user-1', email: 'user@example.com', role: 'user' } as any;
 
       // Make 2 requests
       for (let i = 0; i < 2; i++) {
@@ -247,7 +248,7 @@ describe('Rate Limiting Middleware', () => {
   describe('Rate Limit Reset', () => {
     it('should reset rate limit for a specific identifier', async () => {
       const middleware = rateLimit(60000, 2);
-      mockReq.user = { userId: 'user-1', role: 'user' };
+      mockReq.user = { userId: 'user-1', email: 'user@example.com', role: 'user' } as any;
 
       // Make 2 requests
       for (let i = 0; i < 2; i++) {
@@ -278,7 +279,7 @@ describe('Rate Limiting Middleware', () => {
     it('should use sliding window correctly', async () => {
       const windowMs = 100; // 100ms window
       const middleware = rateLimit(windowMs, 2);
-      mockReq.user = { userId: 'user-1', role: 'user' };
+      mockReq.user = { userId: 'user-1', email: 'user@example.com', role: 'user' } as any;
 
       // Make 2 requests immediately
       for (let i = 0; i < 2; i++) {
@@ -310,7 +311,7 @@ describe('Rate Limiting Middleware', () => {
       const middleware = rateLimit(60000, 2);
 
       // Create a request that might cause issues
-      mockReq.user = { userId: 'user-1', role: 'user' };
+      mockReq.user = { userId: 'user-1', email: 'user@example.com', role: 'user' } as any;
 
       // Middleware should handle errors gracefully
       middleware(mockReq as Request, mockRes as Response, mockNext);
@@ -323,7 +324,7 @@ describe('Rate Limiting Middleware', () => {
       const customWindow = 30000; // 30 seconds
       const customLimit = 10;
       const middleware = rateLimit(customWindow, customLimit);
-      mockReq.user = { userId: 'user-1', role: 'user' };
+      mockReq.user = { userId: 'user-1', email: 'user@example.com', role: 'user' } as any;
 
       // Make 10 requests
       for (let i = 0; i < 10; i++) {

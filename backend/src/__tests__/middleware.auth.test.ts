@@ -8,7 +8,7 @@ import {
   optionalAuthenticateJWT,
 } from '../middleware/auth.js';
 import { generateAccessToken } from '../utils/jwt.js';
-import { AuthenticationError, AuthorizationError, InvalidApiKeyError } from '../utils/errors.js';
+
 
 // Mock prisma and bcrypt to avoid database and native module issues
 vi.mock('../config/database.js', () => ({

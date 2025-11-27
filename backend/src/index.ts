@@ -5,15 +5,7 @@ import { logger } from './utils/logger.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { requestLogger } from './middleware/logging.js';
 import { rateLimit } from './middleware/rateLimit.js';
-import authRoutes from './routes/auth.js';
-import projectRoutes from './routes/projects.js';
-import llmRoutes from './routes/llm.js';
-import incidentRoutes from './routes/incidents.js';
-import metricsRoutes from './routes/metrics.js';
-import logsRoutes from './routes/logs.js';
-import settingsRoutes from './routes/settings.js';
-import billingRoutes from './routes/billing.js';
-import webhookRoutes from './routes/webhooks.js';
+import { createWebhookRouter, createApiRouter } from './routes/index.js';
 import { initializeIncidentDetectionCron } from './cron/incidentDetection.js';
 import { initializeMetricsAggregationCron } from './cron/metricsAggregation.js';
 
@@ -51,8 +43,8 @@ app.get('/health', (_req: Request, res: Response) => {
 // ROUTE REGISTRATION
 // ============================================================================
 
-// Webhook routes (must be before global json middleware to capture raw body)
-app.use('/webhooks', webhookRoutes);
+// Webhook routes (must be before global json middleware to capture raw body for signature validation)
+app.use(createWebhookRouter());
 
 // 3. Body parsing middleware (after webhooks to avoid interfering with signature validation)
 app.use(express.json({ limit: '10mb' }));
@@ -61,32 +53,8 @@ app.use(express.urlencoded({ limit: '10mb', extended: true }));
 // 4. Rate limiting middleware (applies to authenticated requests)
 app.use(rateLimit());
 
-// Authentication routes
-app.use('/auth', authRoutes);
-
-// Project routes
-app.use('/projects', projectRoutes);
-
-// LLM routes
-app.use('/llm', llmRoutes);
-
-// Incident routes (nested under projects)
-app.use('/projects/:projectId/incidents', incidentRoutes);
-
-// Metrics routes
-app.use('/metrics', metricsRoutes);
-
-// Logs routes (nested under projects)
-app.use('/projects/:projectId/logs', logsRoutes);
-
-// Settings routes
-app.use('/settings', settingsRoutes);
-
-// Billing routes
-app.use('/billing', billingRoutes);
-
-// Placeholder for additional routes (will be implemented in subsequent tasks):
-// - Remediation routes
+// Register API routes with versioning (/api/v1/*)
+app.use(createApiRouter());
 
 // ============================================================================
 // 404 HANDLER

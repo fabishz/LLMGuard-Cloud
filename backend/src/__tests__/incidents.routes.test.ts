@@ -3,7 +3,6 @@ import request from 'supertest';
 import app from '../index.js';
 import prisma from '../config/database.js';
 import * as authService from '../services/authService.js';
-import * as llmService from '../services/llmService.js';
 
 describe('Incident Routes', { timeout: 30000 }, () => {
   let testUser: any;

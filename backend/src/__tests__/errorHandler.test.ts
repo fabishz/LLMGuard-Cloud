@@ -46,7 +46,7 @@ describe('Error Handler Middleware', () => {
       json: jsonSpy,
     };
 
-    next = vi.fn();
+    next = vi.fn() as any;
   });
 
   describe('AppError handling', () => {

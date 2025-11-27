@@ -252,7 +252,7 @@ describe('Remediation Action Enforcement', () => {
         status: 'open',
       } as any);
 
-      const requestData = {
+      const requestData: any = {
         model: 'gpt-4',
         userId: 'user-123',
         endpoint: '/llm/request',
@@ -286,7 +286,7 @@ describe('Remediation Action Enforcement', () => {
         status: 'open',
       } as any);
 
-      const requestData = {
+      const requestData: any = {
         model: 'gpt-4',
         userId: 'user-123',
         endpoint: '/llm/request',

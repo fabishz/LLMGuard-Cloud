@@ -363,7 +363,7 @@ async function runScheduledIncidentDetection(): Promise<void> {
 export function initializeIncidentDetectionCron(): void {
   try {
     // Schedule job to run every hour
-    const job = cron.schedule('0 * * * *', async () => {
+    cron.schedule('0 * * * *', async () => {
       await runScheduledIncidentDetection();
     });
 
