@@ -1,17 +1,27 @@
 import { z } from 'zod';
 import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-// Load environment variables from .env file
-dotenv.config();
+// Get the current directory
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-// Define the environment schema
-const envSchema = z.object({
+// Determine which .env file to load based on NODE_ENV
+const nodeEnv = process.env.NODE_ENV || 'development';
+const envFile = path.resolve(__dirname, `../../.env.${nodeEnv}`);
+
+// Load environment variables from the appropriate .env file
+dotenv.config({ path: envFile });
+
+// Define the base environment schema
+const baseEnvSchema = z.object({
   // Application
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   PORT: z.coerce.number().default(3000),
 
   // Database
-  DATABASE_URL: z.string().url('Invalid DATABASE_URL'),
+  DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
 
   // JWT
   JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters'),
@@ -20,15 +30,15 @@ const envSchema = z.object({
   REFRESH_TOKEN_EXPIRATION: z.string().default('7d'),
 
   // OpenAI
-  OPENAI_API_KEY: z.string().startsWith('sk-', 'Invalid OPENAI_API_KEY'),
+  OPENAI_API_KEY: z.string().min(1, 'OPENAI_API_KEY is required'),
 
   // Stripe
-  STRIPE_SECRET_KEY: z.string().startsWith('sk_', 'Invalid STRIPE_SECRET_KEY'),
-  STRIPE_PUBLISHABLE_KEY: z.string().startsWith('pk_', 'Invalid STRIPE_PUBLISHABLE_KEY'),
-  STRIPE_WEBHOOK_SECRET: z.string().startsWith('whsec_', 'Invalid STRIPE_WEBHOOK_SECRET'),
+  STRIPE_SECRET_KEY: z.string().min(1, 'STRIPE_SECRET_KEY is required'),
+  STRIPE_PUBLISHABLE_KEY: z.string().min(1, 'STRIPE_PUBLISHABLE_KEY is required'),
+  STRIPE_WEBHOOK_SECRET: z.string().min(1, 'STRIPE_WEBHOOK_SECRET is required'),
 
   // Datadog
-  DATADOG_WEBHOOK_SECRET: z.string(),
+  DATADOG_WEBHOOK_SECRET: z.string().min(1, 'DATADOG_WEBHOOK_SECRET is required'),
 
   // Rate Limiting
   RATE_LIMIT_WINDOW_MS: z.coerce.number().default(900000),
@@ -42,7 +52,7 @@ const envSchema = z.object({
 
   // API Configuration
   API_VERSION: z.string().default('v1'),
-  API_BASE_URL: z.string().url().default('http://localhost:3000'),
+  API_BASE_URL: z.string().min(1, 'API_BASE_URL is required'),
 
   // Incident Detection
   LATENCY_THRESHOLD_MS: z.coerce.number().default(5000),
@@ -55,7 +65,50 @@ const envSchema = z.object({
   O3_MINI_PRICE: z.coerce.number().default(0.001),
 });
 
+// Environment-specific validation schemas
+const productionEnvSchema = baseEnvSchema.refine(
+  (data) => {
+    // In production, ensure critical values are not defaults
+    const isDefaultSecret = data.JWT_SECRET.includes('prod_secret_key_minimum_32_characters_long_change_in_production');
+    const isDefaultRefreshSecret = data.REFRESH_TOKEN_SECRET.includes('prod_refresh_token_secret_minimum_32_characters_long_change_in_production');
+    return !isDefaultSecret && !isDefaultRefreshSecret;
+  },
+  {
+    message: 'Production environment requires non-default JWT secrets. Update .env.production with real values.',
+  }
+);
+
+const developmentEnvSchema = baseEnvSchema;
+const testEnvSchema = baseEnvSchema;
+
+// Select the appropriate schema based on environment
+const getEnvSchema = (env: string) => {
+  switch (env) {
+    case 'production':
+      return productionEnvSchema;
+    case 'test':
+      return testEnvSchema;
+    case 'development':
+    default:
+      return developmentEnvSchema;
+  }
+};
+
 // Parse and validate environment variables
-const env = envSchema.parse(process.env);
+let env: z.infer<typeof baseEnvSchema>;
+
+try {
+  const schema = getEnvSchema(nodeEnv);
+  env = schema.parse(process.env);
+} catch (error) {
+  if (error instanceof z.ZodError) {
+    console.error('❌ Environment validation failed:');
+    error.errors.forEach((err) => {
+      console.error(`  - ${err.path.join('.')}: ${err.message}`);
+    });
+    process.exit(1);
+  }
+  throw error;
+}
 
 export default env;
