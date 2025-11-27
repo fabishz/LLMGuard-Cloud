@@ -366,14 +366,14 @@
   - Test POST /auth/logout
   - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5_
 
-- [ ] 52. Write integration tests for project endpoints
+- [x] 52. Write integration tests for project endpoints
   - Test POST /projects with project creation
   - Test GET /projects for listing
   - Test API key creation and rotation
   - Test API key validation in requests
   - _Requirements: 2.1, 2.2, 2.3, 2.4_
 
-- [ ] 53. Write integration tests for LLM request endpoint
+- [x] 53. Write integration tests for LLM request endpoint
   - Test POST /llm/request with valid API key
   - Test risk score computation
   - Test error handling for invalid requests
