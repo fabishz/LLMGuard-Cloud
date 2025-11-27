@@ -1,0 +1,1011 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "LLMGuard Cloud Backend API",
+    "description": "Production-ready SaaS backend for monitoring, logging, and managing Large Language Model requests in real-time. Detects anomalies, generates root cause analysis, and provides automated remediation.",
+    "version": "1.0.0",
+    "contact": {
+      "name": "LLMGuard Support",
+      "email": "support@llmguard.io"
+    },
+    "license": {
+      "name": "MIT"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000",
+      "description": "Development server"
+    },
+    {
+      "url": "https://api.llmguard.io",
+      "description": "Production server"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Authentication",
+      "description": "User authentication and account management"
+    },
+    {
+      "name": "Projects",
+      "description": "Project and API key management"
+    },
+    {
+      "name": "LLM Requests",
+      "description": "LLM request logging and risk scoring"
+    },
+    {
+      "name": "Incidents",
+      "description": "Incident detection and root cause analysis"
+    },
+    {
+      "name": "Remediation",
+      "description": "Auto-remediation actions"
+    },
+    {
+      "name": "Metrics",
+      "description": "Aggregated usage metrics and analytics"
+    },
+    {
+      "name": "Logs",
+      "description": "Log search and filtering"
+    },
+    {
+      "name": "Settings",
+      "description": "User and project settings management"
+    },
+    {
+      "name": "Billing",
+      "description": "Billing and subscription management"
+    },
+    {
+      "name": "Webhooks",
+      "description": "External webhook handlers"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "JWT access token for authenticated requests"
+      },
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-API-Key",
+        "description": "API key for project-specific requests"
+      }
+    },
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "required": ["error"],
+        "properties": {
+          "error": {
+            "type": "object",
+            "required": ["code", "message", "timestamp"],
+            "properties": {
+              "code": {
+                "type": "string",
+                "description": "Error code identifier"
+              },
+              "message": {
+                "type": "string",
+                "description": "Human-readable error message"
+              },
+              "details": {
+                "type": "object",
+                "description": "Additional error details"
+              },
+              "timestamp": {
+                "type": "string",
+                "format": "date-time",
+                "description": "ISO 8601 timestamp of error"
+              }
+            }
+          }
+        }
+      },
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique user identifier"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "description": "User email address"
+          },
+          "name": {
+            "type": "string",
+            "description": "User full name"
+          },
+          "role": {
+            "type": "string",
+            "enum": ["user", "admin"],
+            "description": "User role"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Account creation timestamp"
+          }
+        }
+      },
+      "TokenPair": {
+        "type": "object",
+        "properties": {
+          "accessToken": {
+            "type": "string",
+            "description": "JWT access token (15-minute expiration)"
+          },
+          "refreshToken": {
+            "type": "string",
+            "description": "JWT refresh token (7-day expiration)"
+          },
+          "expiresIn": {
+            "type": "number",
+            "description": "Access token expiration in seconds"
+          }
+        }
+      },
+      "Project": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique project identifier"
+          },
+          "name": {
+            "type": "string",
+            "description": "Project name"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Project creation timestamp"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Last update timestamp"
+          }
+        }
+      },
+      "ApiKey": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique API key identifier"
+          },
+          "key": {
+            "type": "string",
+            "description": "Unhashed API key (returned only on creation)"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "API key creation timestamp"
+          },
+          "rotatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Last rotation timestamp"
+          }
+        }
+      },
+      "LLMRequest": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique request identifier"
+          },
+          "prompt": {
+            "type": "string",
+            "description": "LLM prompt text"
+          },
+          "response": {
+            "type": "string",
+            "description": "LLM response text"
+          },
+          "model": {
+            "type": "string",
+            "description": "LLM model name (e.g., gpt-4, o3-mini)"
+          },
+          "latency": {
+            "type": "number",
+            "description": "Request latency in milliseconds"
+          },
+          "tokens": {
+            "type": "number",
+            "description": "Total tokens used"
+          },
+          "riskScore": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100,
+            "description": "Security risk score (0-100)"
+          },
+          "error": {
+            "type": "string",
+            "description": "Error message if request failed"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Request timestamp"
+          }
+        }
+      },
+      "Incident": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique incident identifier"
+          },
+          "severity": {
+            "type": "string",
+            "enum": ["low", "medium", "high", "critical"],
+            "description": "Incident severity level"
+          },
+          "triggerType": {
+            "type": "string",
+            "description": "Type of trigger that created incident"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["open", "resolved"],
+            "description": "Incident status"
+          },
+          "rootCause": {
+            "type": "string",
+            "description": "AI-generated root cause analysis"
+          },
+          "recommendedFix": {
+            "type": "string",
+            "description": "Recommended fix from AI analysis"
+          },
+          "affectedRequests": {
+            "type": "number",
+            "description": "Number of affected LLM requests"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Incident creation timestamp"
+          },
+          "resolvedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Incident resolution timestamp"
+          }
+        }
+      },
+      "RemediationAction": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique action identifier"
+          },
+          "actionType": {
+            "type": "string",
+            "enum": ["switch_model", "increase_safety_threshold", "disable_endpoint", "reset_settings", "change_system_prompt", "rate_limit_user"],
+            "description": "Type of remediation action"
+          },
+          "parameters": {
+            "type": "object",
+            "description": "Action-specific parameters"
+          },
+          "executed": {
+            "type": "boolean",
+            "description": "Whether action has been executed"
+          },
+          "executedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Execution timestamp"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Action creation timestamp"
+          }
+        }
+      },
+      "Metrics": {
+        "type": "object",
+        "properties": {
+          "totalRequests": {
+            "type": "number",
+            "description": "Total LLM requests in period"
+          },
+          "errorCount": {
+            "type": "number",
+            "description": "Number of failed requests"
+          },
+          "errorRate": {
+            "type": "number",
+            "description": "Error rate percentage"
+          },
+          "averageLatency": {
+            "type": "number",
+            "description": "Average latency in milliseconds"
+          },
+          "totalTokens": {
+            "type": "number",
+            "description": "Total tokens used"
+          },
+          "estimatedCost": {
+            "type": "number",
+            "description": "Estimated cost in USD"
+          },
+          "modelBreakdown": {
+            "type": "object",
+            "description": "Request count by model"
+          },
+          "dailySummary": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "date": {
+                  "type": "string",
+                  "format": "date"
+                },
+                "requests": {
+                  "type": "number"
+                },
+                "errors": {
+                  "type": "number"
+                },
+                "avgLatency": {
+                  "type": "number"
+                },
+                "tokens": {
+                  "type": "number"
+                },
+                "cost": {
+                  "type": "number"
+                }
+              }
+            }
+          }
+        }
+      },
+      "BillingInfo": {
+        "type": "object",
+        "properties": {
+          "plan": {
+            "type": "string",
+            "enum": ["free", "pro", "enterprise"],
+            "description": "Current billing plan"
+          },
+          "usage": {
+            "type": "number",
+            "description": "Current month usage"
+          },
+          "monthlyLimit": {
+            "type": "number",
+            "description": "Monthly request limit"
+          },
+          "nextBillingDate": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Next billing date"
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/auth/register": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "Register a new user",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "password"],
+                "properties": {
+                  "email": {"type": "string", "format": "email"},
+                  "password": {"type": "string", "minLength": 8},
+                  "name": {"type": "string"}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "User registered successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "user": {"$ref": "#/components/schemas/User"},
+                    "accessToken": {"type": "string"},
+                    "refreshToken": {"type": "string"},
+                    "expiresIn": {"type": "number"}
+                  }
+                }
+              }
+            }
+          },
+          "400": {"description": "Validation error", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Error"}}}}
+        }
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "Login user",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "password"],
+                "properties": {
+                  "email": {"type": "string", "format": "email"},
+                  "password": {"type": "string"}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "user": {"$ref": "#/components/schemas/User"},
+                    "accessToken": {"type": "string"},
+                    "refreshToken": {"type": "string"},
+                    "expiresIn": {"type": "number"}
+                  }
+                }
+              }
+            }
+          },
+          "401": {"description": "Invalid credentials", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Error"}}}}
+        }
+      }
+    },
+    "/auth/refresh-token": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "Refresh access token",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["refreshToken"],
+                "properties": {
+                  "refreshToken": {"type": "string"}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Token refreshed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "accessToken": {"type": "string"},
+                    "expiresIn": {"type": "number"}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/projects": {
+      "post": {
+        "tags": ["Projects"],
+        "summary": "Create a new project",
+        "security": [{"bearerAuth": []}],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name"],
+                "properties": {
+                  "name": {"type": "string", "minLength": 1, "maxLength": 255}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Project created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "project": {"$ref": "#/components/schemas/Project"},
+                    "apiKey": {"type": "string"}
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": ["Projects"],
+        "summary": "List user projects",
+        "security": [{"bearerAuth": []}],
+        "responses": {
+          "200": {
+            "description": "Projects list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "projects": {
+                      "type": "array",
+                      "items": {"$ref": "#/components/schemas/Project"}
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/llm/request": {
+      "post": {
+        "tags": ["LLM Requests"],
+        "summary": "Log an LLM request",
+        "security": [{"apiKeyAuth": []}],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["prompt", "response", "model", "latency", "tokens"],
+                "properties": {
+                  "prompt": {"type": "string", "maxLength": 50000},
+                  "response": {"type": "string", "maxLength": 100000},
+                  "model": {"type": "string"},
+                  "latency": {"type": "number", "minimum": 0},
+                  "tokens": {"type": "number", "minimum": 0},
+                  "error": {"type": "string"}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Request logged",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/LLMRequest"}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/projects/{projectId}/incidents": {
+      "get": {
+        "tags": ["Incidents"],
+        "summary": "List incidents",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {"name": "projectId", "in": "path", "required": true, "schema": {"type": "string"}},
+          {"name": "status", "in": "query", "schema": {"type": "string", "enum": ["open", "resolved"]}},
+          {"name": "limit", "in": "query", "schema": {"type": "integer", "default": 50}},
+          {"name": "page", "in": "query", "schema": {"type": "integer", "default": 1}}
+        ],
+        "responses": {
+          "200": {
+            "description": "Incidents list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "incidents": {
+                      "type": "array",
+                      "items": {"$ref": "#/components/schemas/Incident"}
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/projects/{projectId}/incidents/{incidentId}": {
+      "get": {
+        "tags": ["Incidents"],
+        "summary": "Get incident details",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {"name": "projectId", "in": "path", "required": true, "schema": {"type": "string"}},
+          {"name": "incidentId", "in": "path", "required": true, "schema": {"type": "string"}}
+        ],
+        "responses": {
+          "200": {
+            "description": "Incident details",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/Incident"}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/projects/{projectId}/incidents/{incidentId}/resolve": {
+      "post": {
+        "tags": ["Incidents"],
+        "summary": "Resolve an incident",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {"name": "projectId", "in": "path", "required": true, "schema": {"type": "string"}},
+          {"name": "incidentId", "in": "path", "required": true, "schema": {"type": "string"}}
+        ],
+        "responses": {
+          "200": {
+            "description": "Incident resolved",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/Incident"}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/projects/{projectId}/incidents/{incidentId}/remediation": {
+      "post": {
+        "tags": ["Remediation"],
+        "summary": "Apply remediation action",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {"name": "projectId", "in": "path", "required": true, "schema": {"type": "string"}},
+          {"name": "incidentId", "in": "path", "required": true, "schema": {"type": "string"}}
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["actionType"],
+                "properties": {
+                  "actionType": {"type": "string", "enum": ["switch_model", "increase_safety_threshold", "disable_endpoint", "reset_settings", "change_system_prompt", "rate_limit_user"]},
+                  "parameters": {"type": "object"}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Remediation action created",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/RemediationAction"}
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": ["Remediation"],
+        "summary": "Get remediation history",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {"name": "projectId", "in": "path", "required": true, "schema": {"type": "string"}},
+          {"name": "incidentId", "in": "path", "required": true, "schema": {"type": "string"}},
+          {"name": "limit", "in": "query", "schema": {"type": "integer", "default": 50}},
+          {"name": "offset", "in": "query", "schema": {"type": "integer", "default": 0}}
+        ],
+        "responses": {
+          "200": {
+            "description": "Remediation history",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "actions": {
+                      "type": "array",
+                      "items": {"$ref": "#/components/schemas/RemediationAction"}
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/metrics": {
+      "get": {
+        "tags": ["Metrics"],
+        "summary": "Get project metrics",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {"name": "projectId", "in": "query", "required": true, "schema": {"type": "string"}},
+          {"name": "startDate", "in": "query", "schema": {"type": "string", "format": "date-time"}},
+          {"name": "endDate", "in": "query", "schema": {"type": "string", "format": "date-time"}}
+        ],
+        "responses": {
+          "200": {
+            "description": "Project metrics",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/Metrics"}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/projects/{projectId}/logs": {
+      "get": {
+        "tags": ["Logs"],
+        "summary": "Search logs",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {"name": "projectId", "in": "path", "required": true, "schema": {"type": "string"}},
+          {"name": "search", "in": "query", "schema": {"type": "string"}},
+          {"name": "model", "in": "query", "schema": {"type": "string"}},
+          {"name": "minRiskScore", "in": "query", "schema": {"type": "integer", "minimum": 0, "maximum": 100}},
+          {"name": "maxRiskScore", "in": "query", "schema": {"type": "integer", "minimum": 0, "maximum": 100}},
+          {"name": "sortBy", "in": "query", "schema": {"type": "string", "enum": ["timestamp", "latency", "riskScore"]}},
+          {"name": "sortOrder", "in": "query", "schema": {"type": "string", "enum": ["asc", "desc"]}},
+          {"name": "limit", "in": "query", "schema": {"type": "integer", "default": 100}},
+          {"name": "page", "in": "query", "schema": {"type": "integer", "default": 1}}
+        ],
+        "responses": {
+          "200": {
+            "description": "Logs list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "logs": {
+                      "type": "array",
+                      "items": {"$ref": "#/components/schemas/LLMRequest"}
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/settings/profile": {
+      "get": {
+        "tags": ["Settings"],
+        "summary": "Get user profile",
+        "security": [{"bearerAuth": []}],
+        "responses": {
+          "200": {
+            "description": "User profile",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/User"}
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Settings"],
+        "summary": "Update user profile",
+        "security": [{"bearerAuth": []}],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {"type": "string", "maxLength": 255}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Profile updated",
+            "content": {
+              "application/json": {
+                "schema": {"$ref": "#/components/schemas/User"}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/billing/checkout": {
+      "post": {
+        "tags": ["Billing"],
+        "summary": "Create checkout session",
+        "security": [{"bearerAuth": []}],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["plan", "successUrl", "cancelUrl"],
+                "properties": {
+                  "plan": {"type": "string", "enum": ["pro", "enterprise"]},
+                  "successUrl": {"type": "string", "format": "uri"},
+                  "cancelUrl": {"type": "string", "format": "uri"}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Checkout session created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "sessionId": {"type": "string"},
+                    "checkoutUrl": {"type": "string"}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/billing/invoices": {
+      "get": {
+        "tags": ["Billing"],
+        "summary": "Get invoices",
+        "security": [{"bearerAuth": []}],
+        "parameters": [
+          {"name": "limit", "in": "query", "schema": {"type": "integer", "default": 10}}
+        ],
+        "responses": {
+          "200": {
+            "description": "Invoices list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "invoices": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {"type": "string"},
+                          "amount": {"type": "number"},
+                          "currency": {"type": "string"},
+                          "status": {"type": "string"},
+                          "date": {"type": "string", "format": "date"}
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/webhooks/datadog": {
+      "post": {
+        "tags": ["Webhooks"],
+        "summary": "Datadog webhook handler",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "alert": {"type": "object"}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Webhook processed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {"type": "string"}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/webhooks/stripe": {
+      "post": {
+        "tags": ["Webhooks"],
+        "summary": "Stripe webhook handler",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "type": {"type": "string"},
+                  "data": {"type": "object"}
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Webhook processed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {"type": "string"}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
