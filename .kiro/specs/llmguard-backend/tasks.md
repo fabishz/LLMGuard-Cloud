@@ -326,40 +326,40 @@
   - Add validation for required variables per environment
   - _Requirements: 11.3_
 
-- [ ] 46. Write unit tests for authentication service
+- [x] 46. Write unit tests for authentication service
   - Test password hashing and verification
   - Test JWT token generation and validation
   - Test login with valid/invalid credentials
   - Test token refresh logic
   - _Requirements: 1.1, 1.2, 1.3_
 
-- [ ] 47. Write unit tests for risk scoring algorithm
+- [x] 47. Write unit tests for risk scoring algorithm
   - Test risk score calculation with various inputs
   - Test keyword detection
   - Test score clamping to 0-100 range
   - Test model-specific adjustments
   - _Requirements: 3.3_
 
-- [ ] 48. Write unit tests for incident detection
+- [x] 48. Write unit tests for incident detection
   - Test rule-based trigger detection
   - Test statistical anomaly detection
   - Test incident creation logic
   - _Requirements: 4.1, 4.3_
 
-- [ ] 49. Write unit tests for metrics calculation
+- [x] 49. Write unit tests for metrics calculation
   - Test daily summary aggregation
   - Test error rate calculation
   - Test cost estimation
   - Test model breakdown
   - _Requirements: 6.1, 6.2, 6.3_
 
-- [ ] 50. Write unit tests for remediation service
+- [x] 50. Write unit tests for remediation service
   - Test remediation action creation
   - Test constraint enforcement
   - Test action logging
   - _Requirements: 5.1, 5.2, 5.3_
 
-- [ ] 51. Write integration tests for authentication endpoints
+- [x] 51. Write integration tests for authentication endpoints
   - Test POST /auth/register with valid/invalid data
   - Test POST /auth/login with valid/invalid credentials
   - Test POST /auth/refresh-token with valid/expired tokens

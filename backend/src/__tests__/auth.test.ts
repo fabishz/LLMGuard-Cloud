@@ -27,7 +27,7 @@ describe('Authentication Routes', () => {
   describe('POST /auth/register', () => {
     it('should register a new user successfully', async () => {
       const response = await request(app)
-        .post('/auth/register')
+        .post('/api/v1/auth/register')
         .send({
           email: testUser.email,
           password: testUser.password,
@@ -46,7 +46,7 @@ describe('Authentication Routes', () => {
 
     it('should reject registration with invalid email', async () => {
       const response = await request(app)
-        .post('/auth/register')
+        .post('/api/v1/auth/register')
         .send({
           email: 'invalid-email',
           password: testUser.password,
@@ -59,7 +59,7 @@ describe('Authentication Routes', () => {
 
     it('should reject registration with weak password', async () => {
       const response = await request(app)
-        .post('/auth/register')
+        .post('/api/v1/auth/register')
         .send({
           email: 'newuser@example.com',
           password: 'weak',
@@ -73,7 +73,7 @@ describe('Authentication Routes', () => {
     it('should reject duplicate email registration', async () => {
       // First registration
       await request(app)
-        .post('/auth/register')
+        .post('/api/v1/auth/register')
         .send({
           email: 'duplicate@example.com',
           password: testUser.password,
@@ -81,7 +81,7 @@ describe('Authentication Routes', () => {
 
       // Second registration with same email
       const response = await request(app)
-        .post('/auth/register')
+        .post('/api/v1/auth/register')
         .send({
           email: 'duplicate@example.com',
           password: testUser.password,
@@ -101,7 +101,7 @@ describe('Authentication Routes', () => {
     beforeAll(async () => {
       // Create a test user for login tests
       await request(app)
-        .post('/auth/register')
+        .post('/api/v1/auth/register')
         .send({
           email: testUser.email,
           password: testUser.password,
@@ -111,7 +111,7 @@ describe('Authentication Routes', () => {
 
     it('should login successfully with valid credentials', async () => {
       const response = await request(app)
-        .post('/auth/login')
+        .post('/api/v1/auth/login')
         .send({
           email: testUser.email,
           password: testUser.password,
@@ -127,7 +127,7 @@ describe('Authentication Routes', () => {
 
     it('should reject login with invalid email', async () => {
       const response = await request(app)
-        .post('/auth/login')
+        .post('/api/v1/auth/login')
         .send({
           email: 'nonexistent@example.com',
           password: testUser.password,
@@ -139,7 +139,7 @@ describe('Authentication Routes', () => {
 
     it('should reject login with invalid password', async () => {
       const response = await request(app)
-        .post('/auth/login')
+        .post('/api/v1/auth/login')
         .send({
           email: testUser.email,
           password: 'WrongPassword123!',
@@ -151,7 +151,7 @@ describe('Authentication Routes', () => {
 
     it('should reject login with missing email', async () => {
       const response = await request(app)
-        .post('/auth/login')
+        .post('/api/v1/auth/login')
         .send({
           password: testUser.password,
         });
@@ -167,7 +167,7 @@ describe('Authentication Routes', () => {
     beforeAll(async () => {
       // Get a refresh token from login
       const loginResponse = await request(app)
-        .post('/auth/login')
+        .post('/api/v1/auth/login')
         .send({
           email: testUser.email,
           password: testUser.password,
@@ -178,7 +178,7 @@ describe('Authentication Routes', () => {
 
     it('should refresh token successfully with valid refresh token', async () => {
       const response = await request(app)
-        .post('/auth/refresh-token')
+        .post('/api/v1/auth/refresh-token')
         .send({
           refreshToken,
         });
@@ -192,7 +192,7 @@ describe('Authentication Routes', () => {
 
     it('should reject refresh with invalid token', async () => {
       const response = await request(app)
-        .post('/auth/refresh-token')
+        .post('/api/v1/auth/refresh-token')
         .send({
           refreshToken: 'invalid.token.here',
         });
@@ -203,7 +203,7 @@ describe('Authentication Routes', () => {
 
     it('should reject refresh with missing token', async () => {
       const response = await request(app)
-        .post('/auth/refresh-token')
+        .post('/api/v1/auth/refresh-token')
         .send({});
 
       expect(response.status).toBe(400);
@@ -214,7 +214,7 @@ describe('Authentication Routes', () => {
   describe('POST /auth/logout', () => {
     it('should logout successfully', async () => {
       const response = await request(app)
-        .post('/auth/logout')
+        .post('/api/v1/auth/logout')
         .send({});
 
       expect(response.status).toBe(200);

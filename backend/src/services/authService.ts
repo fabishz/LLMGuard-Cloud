@@ -1,7 +1,7 @@
 import prisma from '../config/database.js';
 import { hashPassword, verifyPassword, validatePasswordStrength } from '../utils/crypto.js';
 import { generateTokenPair, TokenPair, verifyRefreshToken } from '../utils/jwt.js';
-import { InvalidCredentialsError, ValidationError, ConflictError } from '../utils/errors.js';
+import { InvalidCredentialsError, ValidationError, ConflictError, InvalidTokenError } from '../utils/errors.js';
 import { logger } from '../utils/logger.js';
 
 /**
@@ -156,57 +156,49 @@ export async function register(request: RegisterRequest): Promise<AuthResponse> 
 export async function login(request: LoginRequest): Promise<AuthResponse> {
   const { email, password } = request;
 
-  try {
-    // Find user by email
-    const user = await prisma.user.findUnique({
-      where: { email },
-    });
+  // Find user by email
+  const user = await prisma.user.findUnique({
+    where: { email },
+  });
 
-    if (!user) {
-      logger.warn({ email }, 'Login attempt with non-existent email');
-      throw new InvalidCredentialsError();
-    }
-
-    // Verify password
-    const isPasswordValid = await verifyPassword(password, user.password);
-
-    if (!isPasswordValid) {
-      logger.warn({ userId: user.id, email }, 'Login attempt with invalid password');
-      throw new InvalidCredentialsError();
-    }
-
-    logger.info({ userId: user.id, email }, 'User logged in successfully');
-
-    // Generate tokens
-    const tokens = generateTokenPair({
-      userId: user.id,
-      email: user.email,
-      role: user.role as 'user' | 'admin',
-    });
-
-    return {
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name || undefined,
-        role: user.role,
-      },
-      tokens,
-    };
-  } catch (error) {
-    if (error instanceof InvalidCredentialsError) {
-      throw error;
-    }
-    logger.error({ error, email }, 'Failed to login user');
-    throw new Error('Failed to login user');
+  if (!user) {
+    logger.warn({ email }, 'Login attempt with non-existent email');
+    throw new InvalidCredentialsError();
   }
+
+  // Verify password
+  const isPasswordValid = await verifyPassword(password, user.password);
+
+  if (!isPasswordValid) {
+    logger.warn({ userId: user.id, email }, 'Login attempt with invalid password');
+    throw new InvalidCredentialsError();
+  }
+
+  logger.info({ userId: user.id, email }, 'User logged in successfully');
+
+  // Generate tokens
+  const tokens = generateTokenPair({
+    userId: user.id,
+    email: user.email,
+    role: user.role as 'user' | 'admin',
+  });
+
+  return {
+    user: {
+      id: user.id,
+      email: user.email,
+      name: user.name || undefined,
+      role: user.role,
+    },
+    tokens,
+  };
 }
 
 /**
  * Refresh access token using refresh token
  * @param request - Refresh token request
  * @returns Authentication response with new tokens
- * @throws InvalidCredentialsError if refresh token is invalid or expired
+ * @throws InvalidTokenError if refresh token is invalid or expired
  */
 export async function refreshToken(request: RefreshTokenRequest): Promise<AuthResponse> {
   const { refreshToken } = request;
@@ -222,7 +214,7 @@ export async function refreshToken(request: RefreshTokenRequest): Promise<AuthRe
 
     if (!user) {
       logger.warn({ userId: payload.userId }, 'Refresh token for non-existent user');
-      throw new InvalidCredentialsError();
+      throw new InvalidTokenError();
     }
 
     logger.info({ userId: user.id }, 'Token refreshed successfully');
@@ -244,11 +236,11 @@ export async function refreshToken(request: RefreshTokenRequest): Promise<AuthRe
       tokens,
     };
   } catch (error) {
-    if (error instanceof InvalidCredentialsError) {
+    if (error instanceof InvalidTokenError) {
       throw error;
     }
     logger.error({ error }, 'Failed to refresh token');
-    throw new InvalidCredentialsError();
+    throw new InvalidTokenError();
   }
 }
 
