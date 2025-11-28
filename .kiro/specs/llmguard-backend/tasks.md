@@ -387,7 +387,7 @@
   - Test incident creation from various triggers
   - _Requirements: 4.1, 4.5, 4.6_
 
-- [ ] 55. Write integration tests for metrics endpoint
+- [x] 55. Write integration tests for metrics endpoint
   - Test GET /metrics with time-series data
   - Test metric aggregation accuracy
   - Test cost calculation
