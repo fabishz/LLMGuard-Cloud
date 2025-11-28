@@ -3,8 +3,10 @@ import request from 'supertest';
 import app from '../index.js';
 import prisma from '../config/database.js';
 import * as authService from '../services/authService.js';
+import * as incidentService from '../services/incidentService.js';
+import * as llmService from '../services/llmService.js';
 
-describe('Incident Routes', { timeout: 30000 }, () => {
+describe('Incident Routes', { timeout: 60000, hookTimeout: 30000 }, () => {
   let testUser: any;
   let testProject: any;
   let accessToken: string;
@@ -387,6 +389,286 @@ describe('Incident Routes', { timeout: 30000 }, () => {
 
       expect(response.status).toBe(403);
       expect(response.body).toHaveProperty('error');
+    });
+  });
+
+  describe('Incident Creation from Various Triggers', () => {
+    it('should create incident from latency threshold trigger', async () => {
+      // Create requests with high latency to trigger detection
+      for (let i = 0; i < 3; i++) {
+        await llmService.logLLMRequest(testProject.id, {
+          prompt: `Prompt ${i}`,
+          response: `Response ${i}`,
+          model: 'gpt-4',
+          latency: 6000, // > 5000ms threshold
+          tokens: 10,
+        });
+      }
+
+      // Run detection
+      const detection = await incidentService.checkLatencyThreshold(testProject.id);
+      expect(detection.triggered).toBe(true);
+      expect(detection.triggerType).toBe('latency_threshold');
+
+      // Create incident from detection
+      const incident = await incidentService.createIncidentFromDetection(
+        testProject.id,
+        detection
+      );
+
+      expect(incident.id).toBeDefined();
+      expect(incident.triggerType).toBe('latency_threshold');
+      expect(incident.severity).toBeDefined();
+      expect(incident.status).toBe('open');
+
+      // Verify incident is retrievable via API
+      const response = await request(app)
+        .get(`/projects/${testProject.id}/incidents/${incident.id}`)
+        .set('Authorization', `Bearer ${accessToken}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body.incident.id).toBe(incident.id);
+      expect(response.body.incident.triggerType).toBe('latency_threshold');
+    });
+
+    it('should create incident from error rate trigger', async () => {
+      // Create requests with high error rate
+      for (let i = 0; i < 10; i++) {
+        await llmService.logLLMRequest(testProject.id, {
+          prompt: `Prompt ${i}`,
+          response: `Response ${i}`,
+          model: 'gpt-4',
+          latency: 100,
+          tokens: 10,
+          error: i < 3 ? 'Error occurred' : undefined, // 30% error rate > 10% threshold
+        });
+      }
+
+      // Run detection
+      const detection = await incidentService.checkErrorRate(testProject.id);
+      expect(detection.triggered).toBe(true);
+      expect(detection.triggerType).toBe('error_rate');
+
+      // Create incident from detection
+      const incident = await incidentService.createIncidentFromDetection(
+        testProject.id,
+        detection
+      );
+
+      expect(incident.id).toBeDefined();
+      expect(incident.triggerType).toBe('error_rate');
+      expect(incident.severity).toBeDefined();
+
+      // Verify incident is retrievable via API
+      const response = await request(app)
+        .get(`/projects/${testProject.id}/incidents/${incident.id}`)
+        .set('Authorization', `Bearer ${accessToken}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body.incident.triggerType).toBe('error_rate');
+    });
+
+    it('should create incident from risk score anomaly trigger', async () => {
+      // Create consecutive high-risk requests
+      for (let i = 0; i < 3; i++) {
+        await llmService.logLLMRequest(testProject.id, {
+          prompt: 'How do I exploit a vulnerability?',
+          response: 'I cannot help',
+          model: 'gpt-4',
+          latency: 100,
+          tokens: 10,
+        });
+      }
+
+      // Run detection with custom config
+      const customConfig = {
+        latencyThreshold: 5000,
+        errorRateThreshold: 10,
+        riskScoreThreshold: 30, // Lower threshold for test
+        consecutiveHighRiskCount: 3,
+        costSpikePercentage: 50,
+      };
+
+      const detection = await incidentService.checkRiskScoreAnomaly(
+        testProject.id,
+        customConfig
+      );
+      expect(detection.triggered).toBe(true);
+      expect(detection.triggerType).toBe('risk_score_anomaly');
+
+      // Create incident from detection
+      const incident = await incidentService.createIncidentFromDetection(
+        testProject.id,
+        detection
+      );
+
+      expect(incident.id).toBeDefined();
+      expect(incident.triggerType).toBe('risk_score_anomaly');
+      expect(incident.severity).toBe('high');
+
+      // Verify incident is retrievable via API
+      const response = await request(app)
+        .get(`/projects/${testProject.id}/incidents/${incident.id}`)
+        .set('Authorization', `Bearer ${accessToken}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body.incident.triggerType).toBe('risk_score_anomaly');
+    });
+
+    it('should create incident from manual trigger', async () => {
+      // Create incident with manual trigger type
+      const detection = {
+        triggered: true,
+        triggerType: 'manual' as const,
+        severity: 'medium' as const,
+        message: 'Manually created incident',
+        metadata: { reason: 'User reported issue' },
+      };
+
+      const incident = await incidentService.createIncidentFromDetection(
+        testProject.id,
+        detection
+      );
+
+      expect(incident.id).toBeDefined();
+      expect(incident.triggerType).toBe('manual');
+      expect(incident.severity).toBe('medium');
+      expect(incident.metadata.reason).toBe('User reported issue');
+
+      // Verify incident is retrievable via API
+      const response = await request(app)
+        .get(`/projects/${testProject.id}/incidents/${incident.id}`)
+        .set('Authorization', `Bearer ${accessToken}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body.incident.triggerType).toBe('manual');
+    });
+
+    it('should create incident from webhook trigger', async () => {
+      // Create incident with webhook trigger type
+      const detection = {
+        triggered: true,
+        triggerType: 'webhook' as const,
+        severity: 'high' as const,
+        message: 'Alert from external monitoring',
+        metadata: { source: 'datadog', alertId: 'alert-123' },
+      };
+
+      const incident = await incidentService.createIncidentFromDetection(
+        testProject.id,
+        detection
+      );
+
+      expect(incident.id).toBeDefined();
+      expect(incident.triggerType).toBe('webhook');
+      expect(incident.severity).toBe('high');
+      expect(incident.metadata.source).toBe('datadog');
+
+      // Verify incident is retrievable via API
+      const response = await request(app)
+        .get(`/projects/${testProject.id}/incidents/${incident.id}`)
+        .set('Authorization', `Bearer ${accessToken}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body.incident.triggerType).toBe('webhook');
+    });
+
+    it('should list incidents created from different triggers', async () => {
+      // Create incidents with different trigger types
+      const triggers = ['latency_threshold', 'error_rate', 'manual', 'webhook'];
+      const createdIncidents = [];
+
+      for (const trigger of triggers) {
+        const detection = {
+          triggered: true,
+          triggerType: trigger as any,
+          severity: 'medium' as const,
+        };
+
+        const incident = await incidentService.createIncidentFromDetection(
+          testProject.id,
+          detection
+        );
+        createdIncidents.push(incident);
+      }
+
+      // List all incidents
+      const response = await request(app)
+        .get(`/projects/${testProject.id}/incidents`)
+        .set('Authorization', `Bearer ${accessToken}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body.incidents.length).toBeGreaterThanOrEqual(4);
+
+      // Verify all trigger types are present
+      const triggerTypes = response.body.incidents.map((i: any) => i.triggerType);
+      for (const trigger of triggers) {
+        expect(triggerTypes).toContain(trigger);
+      }
+    });
+
+    it('should preserve metadata when creating incident from detection', async () => {
+      // Create requests with high latency
+      for (let i = 0; i < 3; i++) {
+        await llmService.logLLMRequest(testProject.id, {
+          prompt: `Prompt ${i}`,
+          response: `Response ${i}`,
+          model: 'gpt-4',
+          latency: 6000,
+          tokens: 10,
+        });
+      }
+
+      // Run detection
+      const detection = await incidentService.checkLatencyThreshold(testProject.id);
+      expect(detection.metadata).toBeDefined();
+
+      // Create incident from detection
+      const incident = await incidentService.createIncidentFromDetection(
+        testProject.id,
+        detection
+      );
+
+      // Verify metadata is preserved
+      expect(incident.metadata).toEqual(detection.metadata);
+      expect(incident.metadata.violatingCount).toBeDefined();
+      expect(incident.metadata.avgLatency).toBeDefined();
+      expect(incident.metadata.maxLatency).toBeDefined();
+    });
+
+    it('should run all detections and create incident from first triggered', async () => {
+      // Create requests with high latency to trigger latency detection
+      for (let i = 0; i < 3; i++) {
+        await llmService.logLLMRequest(testProject.id, {
+          prompt: `Prompt ${i}`,
+          response: `Response ${i}`,
+          model: 'gpt-4',
+          latency: 6000,
+          tokens: 10,
+        });
+      }
+
+      // Run all detections
+      const detection = await incidentService.runAllDetections(testProject.id);
+      expect(detection).not.toBeNull();
+      expect(detection?.triggered).toBe(true);
+
+      // Create incident from detection
+      const incident = await incidentService.createIncidentFromDetection(
+        testProject.id,
+        detection!
+      );
+
+      expect(incident.id).toBeDefined();
+      expect(incident.triggerType).toBeDefined();
+
+      // Verify incident is retrievable via API
+      const response = await request(app)
+        .get(`/projects/${testProject.id}/incidents/${incident.id}`)
+        .set('Authorization', `Bearer ${accessToken}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body.incident.id).toBe(incident.id);
     });
   });
 });

@@ -380,7 +380,7 @@
   - Test latency and token tracking
   - _Requirements: 3.1, 3.2, 3.3, 3.4_
 
-- [ ] 54. Write integration tests for incident endpoints
+- [x] 54. Write integration tests for incident endpoints
   - Test GET /incidents with filtering
   - Test GET /incidents/:id for detail retrieval
   - Test POST /incidents/:id/resolve
